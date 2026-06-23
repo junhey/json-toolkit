@@ -1,0 +1,22 @@
+{
+  "name": "json-toolkit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A powerful JSON toolbox built with Rust + Tauri",
+  "scripts": {
+    "wasm:build": "wasm-pack build crates/json-core --target web --out-dir ../../web/src/wasm --no-default-features",
+    "wasm:dev": "wasm-pack build crates/json-core --target web --out-dir ../../web/src/wasm --dev --no-default-features",
+    "dev:web": "pnpm wasm:dev && pnpm --filter web dev",
+    "build:web": "pnpm wasm:build && pnpm --filter web build",
+    "dev:tauri": "pnpm wasm:build && tauri dev",
+    "build:tauri": "pnpm wasm:build && tauri build",
+    "dev": "pnpm dev:web",
+    "build": "pnpm build:web",
+    "test:rust": "cargo test --workspace",
+    "test:web": "pnpm --filter web test",
+    "test": "pnpm test:rust && pnpm test:web"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
