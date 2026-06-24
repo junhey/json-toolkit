@@ -1,0 +1,18 @@
+{
+  "miniprogramRoot": "./dist",
+  "projectname": "json-toolkit",
+  "description": "JSON Toolkit WeChat Mini Program",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": true,
+    "es6": false,
+    "enhance": false,
+    "compileHotReLoad": false,
+    "postcss": false,
+    "minified": false,
+    "bigPackageSizeSupport": true
+  },
+  "compileType": "miniprogram",
+  "simulatorPluginLibVersion": {},
+  "condition": {}
+}

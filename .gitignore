@@ -7,18 +7,28 @@ Cargo.lock
 node_modules/
 dist/
 *.local
+.pnpm-store/
 
 # Tauri
 src-tauri/target/
 src-tauri/gen/
 
-# WASM
+# WASM (built during CI)
 crates/json-core/pkg/
 web/src/wasm/*.wasm
 web/src/wasm/*.js
 web/src/wasm/*.d.ts
 web/src/wasm/*.ts
 web/src/wasm/snippet/
+extension/wasm/*.wasm
+extension/wasm/*.js
+
+# Mini Program
+miniprogram/dist/
+
+# WXT
+extension/.output/
+extension/.wxt/
 
 # IDE
 .vscode/

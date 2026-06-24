@@ -1,0 +1,87 @@
+.about-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 30rpx;
+  min-height: 100vh;
+}
+
+.about-logo {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 30rpx;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.about-emoji {
+  font-size: 60rpx;
+}
+
+.about-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.about-version {
+  font-size: 26rpx;
+  color: #9ca3af;
+  margin-top: 4rpx;
+}
+
+.about-desc {
+  font-size: 26rpx;
+  color: #6b7280;
+  text-align: center;
+  margin-top: 20rpx;
+  line-height: 1.6;
+}
+
+.about-section {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-top: 30rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.feature-item {
+  font-size: 26rpx;
+  color: #374151;
+}
+
+.tech-text {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.link-text {
+  font-size: 28rpx;
+  color: #3b82f6;
+  font-family: monospace;
+}
+
+.copy-hint {
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+}

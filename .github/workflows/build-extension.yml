@@ -1,0 +1,46 @@
+name: Build Chrome Extension
+
+on:
+  push:
+    tags: ['v*']
+    paths:
+      - 'extension/**'
+      - 'crates/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - run: cargo install wasm-pack
+
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm wasm:build
+      - run: pnpm --filter extension build
+
+      - name: Package extension
+        run: |
+          cd extension && zip -r json-toolkit-extension.zip .output/chrome-mv3/*
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension
+          path: extension/json-toolkit-extension.zip
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: extension/json-toolkit-extension.zip

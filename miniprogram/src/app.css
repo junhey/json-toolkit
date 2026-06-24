@@ -1,0 +1,67 @@
+page {
+  background-color: #f3f4f6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 20rpx;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 300rpx;
+  padding: 16rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  font-family: monospace;
+  background: #f9fafb;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 20rpx;
+}
+
+.btn-primary[disabled] {
+  opacity: 0.5;
+}
+
+.error-box {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  margin-top: 16rpx;
+  word-break: break-all;
+}
+
+.success-box {
+  background: #f0fdf4;
+  color: #166534;
+  padding: 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  margin-top: 16rpx;
+  word-break: break-all;
+}

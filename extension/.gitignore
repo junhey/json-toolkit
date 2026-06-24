@@ -1,0 +1,6 @@
+node_modules/
+.output/
+.wxt/
+wasm/*.wasm
+wasm/*.js
+wasm/package.json

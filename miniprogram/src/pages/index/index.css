@@ -1,0 +1,156 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 20rpx;
+  min-height: 100vh;
+}
+
+.tool-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.tool-card {
+  width: calc(25% - 12rpx);
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 20rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  border: 2rpx solid transparent;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.tool-card.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.tool-icon {
+  font-size: 36rpx;
+}
+
+.tool-name {
+  font-size: 22rpx;
+  color: #374151;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.card-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.card-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.action-btn {
+  font-size: 24rpx;
+  color: #3b82f6;
+}
+
+.label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.input-small {
+  width: 100%;
+  padding: 12rpx 16rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  font-family: monospace;
+  background: #f9fafb;
+  box-sizing: border-box;
+}
+
+.encoding-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.encoding-btn {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  border-radius: 8rpx;
+  border: 1rpx solid #e5e7eb;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.encoding-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 300rpx;
+  padding: 16rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  font-family: monospace;
+  background: #f9fafb;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  border-radius: 12rpx;
+  padding: 24rpx 0;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  margin: 10rpx 0 20rpx;
+}
+
+.error-box {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  margin-bottom: 20rpx;
+  word-break: break-all;
+}
+
+.output-scroll {
+  max-height: 600rpx;
+}
+
+.output-text {
+  font-size: 24rpx;
+  font-family: monospace;
+  color: #166534;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -13,5 +13,6 @@ export default defineConfig({
       external: ['@tauri-apps/api/core'],
     },
   },
-  base: process.env.GITHUB_PAGES ? '/json-toolkit/' : '/',
+  // GitHub Pages uses /json-toolkit/ base, other deployments use /
+  base: process.env.GITHUB_PAGES === 'true' ? '/json-toolkit/' : '/',
 });
