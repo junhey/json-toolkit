@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
+import { Zap } from 'lucide-react';
 import type { DiffResult } from '../lib/types';
 
 const diffColors: Record<string, string> = {
@@ -37,26 +38,21 @@ export function DiffTool() {
     }
   };
 
-  const leftSample = `{"name":"Alice","age":30,"city":"Beijing","skills":["Rust","Go"]}`;
-  const rightSample = `{"name":"Alice","age":31,"city":"Shanghai","skills":["Rust","Go","Python"],"email":"alice@example.com"}`;
-
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex items-center gap-2">
-        <button onClick={process} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2">
-          ⚡ {t(lang, 'process')}
-        </button>
-        <button onClick={() => { setLeft(leftSample); setRight(rightSample); }} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-          {t(lang, 'sample')}
+        <button onClick={process} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+          <Zap className="w-4 h-4" />
+          {t(lang, 'process')}
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-4 h-64">
+      <div className="grid grid-cols-2 gap-3 h-64">
         <div className="flex flex-col min-h-0">
           <label className="text-xs font-medium text-gray-500 mb-1">{t(lang, 'leftJson')}</label>
           <textarea
             value={left}
             onChange={(e) => setLeft(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             spellCheck={false}
             placeholder="JSON A..."
           />
@@ -66,7 +62,7 @@ export function DiffTool() {
           <textarea
             value={right}
             onChange={(e) => setRight(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             spellCheck={false}
             placeholder="JSON B..."
           />

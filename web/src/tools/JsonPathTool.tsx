@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ToolShell, sampleJson } from '../components/ToolShell';
+import { ToolShell } from '../components/ToolShell';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
@@ -9,7 +9,7 @@ export function JsonPathTool() {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [path, setPath] = useState('$.store.book[*].author');
+  const [path, setPath] = useState('$.');
 
   const process = async () => {
     if (!input.trim()) return;
@@ -22,17 +22,6 @@ export function JsonPathTool() {
     }
   };
 
-  const jsonPathSample = `{
-  "store": {
-    "book": [
-      {"category": "reference", "author": "Nigel Rees", "title": "Sayings of the Century", "price": 8.95},
-      {"category": "fiction", "author": "Evelyn Waugh", "title": "Sword of Honour", "price": 12.99},
-      {"category": "fiction", "author": "Herman Melville", "title": "Moby Dick", "price": 8.99}
-    ],
-    "bicycle": {"color": "red", "price": 19.95}
-  }
-}`;
-
   return (
     <ToolShell
       input={input}
@@ -40,7 +29,6 @@ export function JsonPathTool() {
       output={output}
       error={error}
       onProcess={process}
-      sampleData={jsonPathSample}
       options={
         <label className="text-sm flex items-center gap-2 flex-1">
           {t(lang, 'path')}:

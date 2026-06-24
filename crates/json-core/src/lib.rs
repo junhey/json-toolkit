@@ -8,6 +8,7 @@ pub mod tree;
 pub mod table;
 pub mod diff;
 pub mod convert;
+pub mod mock;
 #[cfg(feature = "schema")]
 pub mod schema;
 

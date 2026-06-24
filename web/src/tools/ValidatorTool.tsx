@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
-import { ShieldCheck, ShieldX } from 'lucide-react';
+import { ShieldCheck, ShieldX, Zap } from 'lucide-react';
 
 export function ValidatorTool() {
   const { lang } = useStore();
@@ -26,34 +26,21 @@ export function ValidatorTool() {
     }
   };
 
-  const jsonSample = `{"name":"Alice","age":30,"email":"alice@example.com"}`;
-  const schemaSample = `{
-  "type": "object",
-  "properties": {
-    "name": {"type": "string", "minLength": 1},
-    "age": {"type": "number", "minimum": 0},
-    "email": {"type": "string", "format": "email"}
-  },
-  "required": ["name", "age", "email"]
-}`;
-
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex items-center gap-2">
-        <button onClick={process} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2">
-          ⚡ {t(lang, 'process')}
-        </button>
-        <button onClick={() => { setInput(jsonSample); setSchema(schemaSample); }} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-          {t(lang, 'sample')}
+        <button onClick={process} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+          <Zap className="w-4 h-4" />
+          {t(lang, 'process')}
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
         <div className="flex flex-col min-h-0">
           <label className="text-xs font-medium text-gray-500 mb-1">{t(lang, 'input')} (JSON)</label>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             spellCheck={false}
             placeholder="JSON to validate..."
           />
@@ -63,7 +50,7 @@ export function ValidatorTool() {
           <textarea
             value={schema}
             onChange={(e) => setSchema(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             spellCheck={false}
             placeholder="JSON Schema..."
           />

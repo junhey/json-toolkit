@@ -6,7 +6,7 @@ use crate::{
     decode::{self, Encoding},
     diff::{self, DiffResult},
     format::{self, FormatOptions, Indent},
-    jsonpath, minify, sort, table, tree,
+    jsonpath, minify, mock, sort, table, tree,
 };
 
 #[wasm_bindgen]
@@ -122,4 +122,14 @@ pub fn wasm_validate_schema(input: &str, schema: &str) -> Result<JsValue, JsValu
             "Schema validation is not available in this build",
         ))
     }
+}
+
+#[wasm_bindgen]
+pub fn wasm_generate_mock(template: &str, array_size: u32, max_depth: u32, seed: Option<f64>) -> Result<String, JsValue> {
+    let opts = mock::MockOptions {
+        array_size: array_size as usize,
+        max_depth: max_depth as usize,
+        seed: seed.map(|s| s as u64),
+    };
+    mock::generate_mock(template, &opts).map_err(|e| JsValue::from_str(&e.to_string()))
 }

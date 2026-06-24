@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ToolShell, useClipboard, downloadText } from '../components/ToolShell';
+import { useClipboard, downloadText } from '../components/ToolShell';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
-import { Copy, Check, Download } from 'lucide-react';
+import { Copy, Check, Download, Zap } from 'lucide-react';
 
 export function ConverterTool() {
   const { lang } = useStore();
@@ -30,18 +30,14 @@ export function ConverterTool() {
     }
   };
 
-  const jsonSample = `[{"name":"Alice","age":30,"city":"Beijing"},{"name":"Bob","age":25,"city":"Shanghai"}]`;
-  const csvSample = `name,age,city\nAlice,30,Beijing\nBob,25,Shanghai`;
-  const sample = direction === 'json2csv' ? jsonSample : csvSample;
-
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex items-center gap-3 flex-wrap p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
         <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <button onClick={() => setDirection('json2csv')} className={`px-3 py-1 text-sm ${direction === 'json2csv' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800'}`}>
+          <button onClick={() => setDirection('json2csv')} className={`px-3 py-1 text-sm transition-colors ${direction === 'json2csv' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
             JSON → CSV
           </button>
-          <button onClick={() => setDirection('csv2json')} className={`px-3 py-1 text-sm ${direction === 'csv2json' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800'}`}>
+          <button onClick={() => setDirection('csv2json')} className={`px-3 py-1 text-sm transition-colors ${direction === 'csv2json' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
             CSV → JSON
           </button>
         </div>
@@ -54,33 +50,31 @@ export function ConverterTool() {
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={process} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2">
-          ⚡ {t(lang, 'process')}
-        </button>
-        <button onClick={() => setInput(sample)} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
-          {t(lang, 'sample')}
+        <button onClick={process} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+          <Zap className="w-4 h-4" />
+          {t(lang, 'process')}
         </button>
         <div className="flex-1" />
         {output && (
           <>
-            <button onClick={() => copy(output)} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1">
+            <button onClick={() => copy(output)} className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1 transition-colors">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               {copied ? t(lang, 'copied') : t(lang, 'copy')}
             </button>
-            <button onClick={() => downloadText(delim === 'csv' ? 'output.csv' : 'output.tsv', output)} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1">
+            <button onClick={() => downloadText(delim === 'csv' ? 'output.csv' : 'output.tsv', output)} className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1 transition-colors">
               <Download className="w-4 h-4" />
               {t(lang, 'download')}
             </button>
           </>
         )}
       </div>
-      <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
         <div className="flex flex-col min-h-0">
           <label className="text-xs font-medium text-gray-500 mb-1">{direction === 'json2csv' ? 'JSON' : 'CSV/TSV'}</label>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             spellCheck={false}
             placeholder={direction === 'json2csv' ? 'Paste JSON array here...' : 'Paste CSV/TSV here...'}
           />

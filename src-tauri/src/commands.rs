@@ -1,8 +1,9 @@
-use json_core::{convert, decode, diff, format, jsonpath, minify, sort, table, tree};
+use json_core::{convert, decode, diff, format, jsonpath, minify, mock, sort, table, tree};
 use json_core::format::{FormatOptions, Indent};
 use json_core::sort::{SortBy, SortOrder};
 use json_core::decode::Encoding;
 use json_core::convert::Delimiter;
+use json_core::mock::MockOptions;
 
 #[tauri::command]
 pub fn format_json(input: String, indent: u32, sort_keys: bool) -> Result<String, String> {
@@ -102,12 +103,15 @@ pub fn csv_to_json(input: String, delim: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn validate_schema(input: String, schema: String) -> Result<Vec<String>, String> {
-    #[cfg(feature = "schema")]
-    {
-        json_core::schema::validate_schema(&input, &schema).map_err(|e| e.to_string())
-    }
-    #[cfg(not(feature = "schema"))]
-    {
-        Err("Schema validation is not available in this build".into())
-    }
+    json_core::schema::validate_schema(&input, &schema).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn generate_mock(template: String, array_size: u32, max_depth: u32, seed: Option<u64>) -> Result<String, String> {
+    let opts = MockOptions {
+        array_size: array_size as usize,
+        max_depth: max_depth as usize,
+        seed,
+    };
+    mock::generate_mock(&template, &opts).map_err(|e| e.to_string())
 }

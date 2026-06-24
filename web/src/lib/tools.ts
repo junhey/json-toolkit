@@ -93,6 +93,15 @@ export const tools: ToolMeta[] = [
     category: 'convert',
     icon: 'FileSpreadsheet',
   },
+  {
+    id: 'mock',
+    nameZh: 'Mock 数据',
+    nameEn: 'Mock Generator',
+    descZh: '根据模板生成随机 JSON 数据',
+    descEn: 'Generate random JSON data from template',
+    category: 'convert',
+    icon: 'Dice5',
+  },
 ];
 
 export const categories: { id: ToolCategory; zh: string; en: string }[] = [

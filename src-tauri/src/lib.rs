@@ -17,6 +17,7 @@ pub fn run() {
             commands::json_to_csv,
             commands::csv_to_json,
             commands::validate_schema,
+            commands::generate_mock,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

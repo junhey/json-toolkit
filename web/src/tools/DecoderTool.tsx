@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ToolShell, sampleJson } from '../components/ToolShell';
+import { ToolShell } from '../components/ToolShell';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
@@ -28,8 +28,6 @@ export function DecoderTool() {
     }
   };
 
-  const sample = mode === 'decode' ? btoa(JSON.stringify({ hello: "world", num: 42 })) : sampleJson;
-
   return (
     <ToolShell
       input={input}
@@ -37,19 +35,18 @@ export function DecoderTool() {
       output={output}
       error={error}
       onProcess={process}
-      sampleData={sample}
       options={
         <>
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
               onClick={() => setMode('decode')}
-              className={`px-3 py-1 text-sm ${mode === 'decode' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800'}`}
+              className={`px-3 py-1 text-sm transition-colors ${mode === 'decode' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             >
               Decode
             </button>
             <button
               onClick={() => setMode('encode')}
-              className={`px-3 py-1 text-sm ${mode === 'encode' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800'}`}
+              className={`px-3 py-1 text-sm transition-colors ${mode === 'encode' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
             >
               Encode
             </button>

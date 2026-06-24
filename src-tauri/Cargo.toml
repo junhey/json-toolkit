@@ -16,7 +16,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { workspace = true }
 serde_json = { workspace = true }
-json-core = { path = "../crates/json-core" }
+json-core = { path = "../crates/json-core", features = ["schema"] }
 
 [profile.release]
 lto = true

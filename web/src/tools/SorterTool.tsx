@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ToolShell, sampleJson } from '../components/ToolShell';
+import { ToolShell } from '../components/ToolShell';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
@@ -30,7 +30,6 @@ export function SorterTool() {
       output={output}
       error={error}
       onProcess={process}
-      sampleData={sampleJson}
       options={
         <>
           <label className="text-sm flex items-center gap-2">

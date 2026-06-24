@@ -76,6 +76,9 @@ function createWasmAdapter(wasm: any) {
         return ['Schema validation is not available in this build'];
       }
     },
+    async generateMock(template: string, arraySize: number, maxDepth: number, seed: number | null): Promise<string> {
+      return wasm.wasm_generate_mock(template, arraySize, maxDepth, seed);
+    },
   };
 }
 
@@ -131,6 +134,10 @@ const tauriAdapter = {
   async validateSchema(input: string, schema: string): Promise<string[]> {
     const { invoke } = await import('@tauri-apps/api/core');
     return invoke('validate_schema', { input, schema });
+  },
+  async generateMock(template: string, arraySize: number, maxDepth: number, seed: number | null): Promise<string> {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return invoke('generate_mock', { template, arraySize, maxDepth, seed });
   },
 };
 

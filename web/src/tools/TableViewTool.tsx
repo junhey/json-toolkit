@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
-import { sampleJson, useClipboard, downloadText } from '../components/ToolShell';
-import { Copy, Check, FileText } from 'lucide-react';
+import { useClipboard, downloadText } from '../components/ToolShell';
+import { Copy, Check, Zap } from 'lucide-react';
 import type { TableData } from '../lib/types';
 
 export function TableViewTool() {
@@ -12,8 +12,6 @@ export function TableViewTool() {
   const [table, setTable] = useState<TableData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { copied, copy } = useClipboard();
-
-  const tableSample = `[{"name":"Alice","age":30,"city":"Beijing"},{"name":"Bob","age":25,"city":"Shanghai"},{"name":"Charlie","age":35,"city":"Shenzhen"}]`;
 
   const process = async () => {
     if (!input.trim()) return;
@@ -35,34 +33,32 @@ export function TableViewTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-3">
       <div className="flex items-center gap-2">
-        <button onClick={process} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2">
-          ⚡ {t(lang, 'process')}
-        </button>
-        <button onClick={() => setInput(tableSample)} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1">
-          <FileText className="w-4 h-4" /> {t(lang, 'sample')}
+        <button onClick={process} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+          <Zap className="w-4 h-4" />
+          {t(lang, 'process')}
         </button>
         {table && table.rows.length > 0 && (
           <>
             <div className="flex-1" />
-            <button onClick={() => copy(tableToCsv())} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1">
+            <button onClick={() => copy(tableToCsv())} className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1 transition-colors">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               {copied ? t(lang, 'copied') : 'CSV'}
             </button>
-            <button onClick={() => downloadText('table.csv', tableToCsv())} className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button onClick={() => downloadText('table.csv', tableToCsv())} className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               Download CSV
             </button>
           </>
         )}
       </div>
-      <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
         <div className="flex flex-col min-h-0">
           <label className="text-xs font-medium text-gray-500 mb-1">{t(lang, 'input')}</label>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             spellCheck={false}
             placeholder="Paste JSON array here..."
           />

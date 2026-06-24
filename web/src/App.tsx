@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Sun, Moon, Monitor, Languages, Zap } from 'lucide-react';
+import { Search, Sun, Moon, Monitor, Languages, Zap, Github, ChevronRight } from 'lucide-react';
 import { useStore } from './store';
 import { tools, categories, getToolName, getToolDesc } from './lib/tools';
 import { t } from './lib/i18n';
@@ -13,6 +13,7 @@ import { TableViewTool } from './tools/TableViewTool';
 import { DiffTool } from './tools/DiffTool';
 import { ValidatorTool } from './tools/ValidatorTool';
 import { ConverterTool } from './tools/ConverterTool';
+import { MockTool } from './tools/MockTool';
 import * as Icons from 'lucide-react';
 
 const toolComponents: Record<string, React.FC> = {
@@ -26,11 +27,12 @@ const toolComponents: Record<string, React.FC> = {
   'diff': DiffTool,
   'validator': ValidatorTool,
   'converter': ConverterTool,
+  'mock': MockTool,
 };
 
 function App() {
-  const { theme, lang, setTheme, setLang, addRecentlyUsed } = useStore();
-  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const { theme, lang, setTheme, setLang, addRecentlyUsed, recentlyUsed } = useStore();
+  const [activeTool, setActiveTool] = useState<string>('formatter');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Apply theme
@@ -71,13 +73,13 @@ function App() {
       <aside className="w-72 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold">JSON Toolkit</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t(lang, 'appDesc')}</p>
+              <h1 className="text-base font-bold tracking-tight">JSON Toolkit</h1>
+              <p className="text-xs text-gray-400">{t(lang, 'appDesc')}</p>
             </div>
           </div>
         </div>
@@ -91,13 +93,42 @@ function App() {
               placeholder={t(lang, 'search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             />
           </div>
         </div>
 
         {/* Tool list */}
         <div className="flex-1 overflow-y-auto px-2 pb-2">
+          {/* Recently used */}
+          {!searchQuery && recentlyUsed.length > 0 && (
+            <div className="mb-3">
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                {lang === 'zh' ? '最近使用' : 'Recent'}
+              </div>
+              {recentlyUsed.slice(0, 3).map((id) => {
+                const tool = tools.find((t) => t.id === id);
+                if (!tool) return null;
+                const Icon = (Icons as any)[tool.icon] || Icons.Box;
+                const isActive = activeTool === tool.id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => selectTool(id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all ${
+                      isActive
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm truncate">{getToolName(tool, lang)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {categories.map((cat) => {
             const catTools = filteredTools.filter((tool) => tool.category === cat.id);
             if (catTools.length === 0) return null;
@@ -113,17 +144,18 @@ function App() {
                     <button
                       key={tool.id}
                       onClick={() => selectTool(tool.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all ${
                         isActive
                           ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                           : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                     >
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{getToolName(tool, lang)}</div>
+                      <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-500' : 'text-gray-400'}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-sm ${isActive ? 'font-medium' : ''} truncate`}>{getToolName(tool, lang)}</div>
                         <div className="text-xs text-gray-400 truncate">{getToolDesc(tool, lang)}</div>
                       </div>
+                      {isActive && <ChevronRight className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -133,22 +165,32 @@ function App() {
         </div>
 
         {/* Footer: Theme & Language */}
-        <div className="p-3 border-t border-gray-200 dark:border-gray-800 flex items-center gap-2">
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            title={t(lang, theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'system')}
+        <div className="p-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title={t(lang, theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'system')}
+            >
+              {theme === 'dark' ? <Moon className="w-4 h-4" /> : theme === 'light' ? <Sun className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
+              title={lang === 'zh' ? '中文' : 'English'}
+            >
+              <Languages className="w-4 h-4" />
+              <span className="text-xs font-medium">{lang === 'zh' ? '中' : 'EN'}</span>
+            </button>
+          </div>
+          <a
+            href="https://github.com/junhey/json-toolkit"
+            target="_blank"
+            rel="noopener"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            {theme === 'dark' ? <Moon className="w-4 h-4" /> : theme === 'light' ? <Sun className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
-            title={lang === 'zh' ? '中文' : 'English'}
-          >
-            <Languages className="w-4 h-4" />
-            <span className="text-xs">{lang === 'zh' ? '中' : 'EN'}</span>
-          </button>
+            <Github className="w-4 h-4" />
+          </a>
         </div>
       </aside>
 
@@ -156,26 +198,28 @@ function App() {
       <main className="flex-1 overflow-hidden">
         {ActiveComponent && activeToolMeta ? (
           <div className="h-full flex flex-col">
-            <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-              <h2 className="text-lg font-semibold">{getToolName(activeToolMeta, lang)}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{getToolDesc(activeToolMeta, lang)}</p>
+            {/* Header */}
+            <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                activeTool === 'formatter' ? 'bg-blue-50 dark:bg-blue-900/30' :
+                activeTool === 'mock' ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-gray-100 dark:bg-gray-800'
+              }`}>
+                {(() => {
+                  const Icon = (Icons as any)[activeToolMeta.icon] || Icons.Box;
+                  return <Icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
+                })()}
+              </div>
+              <div>
+                <h2 className="text-base font-semibold leading-tight">{getToolName(activeToolMeta, lang)}</h2>
+                <p className="text-xs text-gray-400 leading-tight">{getToolDesc(activeToolMeta, lang)}</p>
+              </div>
             </div>
-            <div className="flex-1 overflow-auto p-6">
+            {/* Tool content */}
+            <div className="flex-1 overflow-auto p-6 fade-in">
               <ActiveComponent />
             </div>
           </div>
-        ) : (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold mb-2">JSON Toolkit</h2>
-              <p className="text-gray-500 dark:text-gray-400">{t(lang, 'appDesc')}</p>
-              <p className="text-sm text-gray-400 mt-1">{lang === 'zh' ? '从左侧选择一个工具开始' : 'Select a tool from the sidebar to begin'}</p>
-            </div>
-          </div>
-        )}
+        ) : null}
       </main>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ToolShell, sampleJson } from '../components/ToolShell';
+import { ToolShell } from '../components/ToolShell';
 import { getAdapter } from '../lib/adapter';
 
 export function MinifierTool() {
@@ -18,5 +18,5 @@ export function MinifierTool() {
     }
   };
 
-  return <ToolShell input={input} setInput={setInput} output={output} error={error} onProcess={process} sampleData={sampleJson} />;
+  return <ToolShell input={input} setInput={setInput} output={output} error={error} onProcess={process} />;
 }

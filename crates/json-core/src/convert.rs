@@ -16,6 +16,7 @@ impl Delimiter {
         }
     }
 
+    #[allow(dead_code)]
     fn name(&self) -> &'static str {
         match self {
             Delimiter::Csv => "CSV",
