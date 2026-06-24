@@ -35,6 +35,10 @@ export function DecoderTool() {
       output={output}
       error={error}
       onProcess={process}
+      inputSyntax="text"
+      outputSyntax="text"
+      inputPlaceholder={mode === 'decode' ? 'Paste encoded text...' : 'Paste plain text/JSON...'}
+      outputPlaceholder={mode === 'decode' ? 'Decoded output...' : 'Encoded output...'}
       options={
         <>
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
