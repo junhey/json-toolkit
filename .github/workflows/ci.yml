@@ -28,7 +28,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-      - run: cargo install wasm-pack
+      - run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm wasm:build
       - run: pnpm --filter web build
