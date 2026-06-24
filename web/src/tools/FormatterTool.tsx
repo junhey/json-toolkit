@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Copy, Check, Download, Trash2, Zap, Sparkles, AlertCircle } from 'lucide-react';
+import { Copy, Check, Download, Trash2, Zap, Sparkles, AlertCircle, Paintbrush, Activity } from 'lucide-react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { downloadText } from '../components/ToolShell';
+import { JsonCodeEditor } from '../components/JsonCodeEditor';
 
 export function FormatterTool() {
-  const { lang } = useStore();
+  const { lang, theme } = useStore();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +18,8 @@ export function FormatterTool() {
   const [copied, setCopied] = useState(false);
   const [decodedFrom, setDecodedFrom] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const copy = useCallback(async (text: string) => {
     try {
@@ -101,7 +104,7 @@ export function FormatterTool() {
   useEffect(() => {
     if (!realTime || !input.trim()) return;
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => process(), 300);
+    debounceRef.current = setTimeout(() => process(), 280);
     return () => clearTimeout(debounceRef.current);
   }, [input, indent, sortKeys, autoDecode, realTime, process]);
 
@@ -116,8 +119,9 @@ export function FormatterTool() {
   return (
     <div className="flex flex-col h-full gap-3">
       {/* Options bar */}
-      <div className="flex items-center gap-4 flex-wrap p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+      <div className="flex items-center gap-4 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <label className="text-sm flex items-center gap-2">
+          <Paintbrush className="w-4 h-4 text-indigo-500" />
           <span className="text-gray-500">{t(lang, 'indent')}:</span>
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             {[2, 4, 8].map((v) => (
@@ -135,7 +139,7 @@ export function FormatterTool() {
             ))}
           </div>
         </label>
-        <label className="text-sm flex items-center gap-2 cursor-pointer select-none">
+        <label className="text-sm flex items-center gap-2 cursor-pointer select-none text-gray-700 dark:text-gray-200">
           <input type="checkbox" checked={sortKeys} onChange={(e) => setSortKeys(e.target.checked)} className="rounded accent-blue-600" />
           {t(lang, 'sortKeys')}
         </label>
@@ -146,7 +150,7 @@ export function FormatterTool() {
         </label>
         <label className="text-sm flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" checked={realTime} onChange={(e) => setRealTime(e.target.checked)} className="rounded accent-blue-600" />
-          <Zap className="w-3.5 h-3.5 text-blue-500" />
+          <Activity className="w-3.5 h-3.5 text-blue-500" />
           {t(lang, 'realTime')}
         </label>
         <div className="flex-1" />
@@ -162,7 +166,7 @@ export function FormatterTool() {
 
       {/* Auto-decode notice */}
       {decodedFrom && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs border border-amber-200/70 dark:border-amber-800/60">
           <Sparkles className="w-3.5 h-3.5" />
           {lang === 'zh' ? `检测到 ${decodedFrom} 编码，已自动解码` : `Detected ${decodedFrom} encoding, auto-decoded`}
         </div>
@@ -172,21 +176,21 @@ export function FormatterTool() {
       <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
         {/* Input */}
         <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'input')}</label>
             <span className="text-xs text-gray-400">{inputLines} lines</span>
           </div>
-          <textarea
+          <JsonCodeEditor
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-            spellCheck={false}
+            onChange={setInput}
+            isDark={isDark}
             placeholder={lang === 'zh' ? '粘贴 JSON、Base64 或 URL 编码的 JSON...' : 'Paste JSON, Base64 or URL-encoded JSON...'}
           />
         </div>
+
         {/* Output */}
         <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'output')}</label>
             {output && (
               <div className="flex items-center gap-3">
@@ -204,16 +208,17 @@ export function FormatterTool() {
               </div>
             )}
           </div>
+
           {error ? (
-            <div className="flex-1 p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>{error}</div>
             </div>
           ) : (
-            <textarea
+            <JsonCodeEditor
               value={output}
               readOnly
-              className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 code-font resize-none focus:outline-none"
+              isDark={isDark}
               placeholder={lang === 'zh' ? '格式化结果将显示在这里...' : 'Formatted output will appear here...'}
             />
           )}

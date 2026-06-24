@@ -72,7 +72,17 @@ button {
 
 /* Smooth theme transition */
 * {
-  transition-property: background-color, border-color;
+  transition-property: background-color, border-color, color, box-shadow;
   transition-duration: 0.15s;
   transition-timing-function: ease;
+}
+
+/* Subtle panel glass effect */
+.panel-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.dark .panel-glass {
+  background: rgba(15, 23, 42, 0.72);
 }

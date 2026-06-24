@@ -68,7 +68,7 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 text-gray-900 dark:text-gray-100">
       {/* Sidebar */}
       <aside className="w-72 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
         {/* Logo */}
@@ -199,7 +199,7 @@ function App() {
         {ActiveComponent && activeToolMeta ? (
           <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center gap-3">
+            <div className="px-6 py-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90 backdrop-blur flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 activeTool === 'formatter' ? 'bg-blue-50 dark:bg-blue-900/30' :
                 activeTool === 'mock' ? 'bg-purple-50 dark:bg-purple-900/30' : 'bg-gray-100 dark:bg-gray-800'
@@ -215,7 +215,7 @@ function App() {
               </div>
             </div>
             {/* Tool content */}
-            <div className="flex-1 overflow-auto p-6 fade-in">
+            <div className="flex-1 overflow-auto p-5 lg:p-6 fade-in">
               <ActiveComponent />
             </div>
           </div>
