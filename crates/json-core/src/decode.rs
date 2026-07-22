@@ -106,7 +106,7 @@ fn maybe_pretty(decoded_str: String) -> String {
 pub fn decode_json(input: &str, encoding: Encoding) -> JsonResult<String> {
     let encoding_id = encoding.id();
     match encoding {
-        Encoding::Md5 | Encoding::Sha1 | Encoding::HtmlToJs | Encoding::HtmlDeep | Encoding::Html => {
+        Encoding::Md5 | Encoding::Sha1 | Encoding::HtmlToJs => {
             Err(decode_err(
                 encoding_id,
                 format!("{} is encode-only", encoding_id),
@@ -156,7 +156,9 @@ pub fn decode_json(input: &str, encoding: Encoding) -> JsonResult<String> {
             Ok(maybe_pretty(out))
         }
         Encoding::Escape => Ok(maybe_pretty(unescape_string(input)?)),
-        Encoding::HtmlEntity => Ok(maybe_pretty(decode_html_entities(input))),
+        Encoding::Html | Encoding::HtmlDeep | Encoding::HtmlEntity => {
+            Ok(maybe_pretty(decode_html_entities(input)))
+        }
         Encoding::UrlParams => Ok(parse_url_params(input)?),
         Encoding::Jwt => Ok(decode_jwt(input)?),
         Encoding::Cookie => Ok(format_cookie(input)?),
@@ -233,8 +235,31 @@ fn decode_unicode_escapes(input: &str) -> String {
         if c == '\\' && chars.peek() == Some(&'u') {
             chars.next(); // consume 'u'
             let hex: String = chars.by_ref().take(4).collect();
-            if let Ok(code) = u32::from_str_radix(&hex, 16) {
-                if let Some(ch) = char::from_u32(code) {
+            if let Ok(unit) = u16::from_str_radix(&hex, 16) {
+                // Handle UTF-16 surrogate pairs: \uD83D\uDE00 → 😀
+                if (0xD800..=0xDBFF).contains(&unit) {
+                    let mut look = chars.clone();
+                    if look.next() == Some('\\') && look.next() == Some('u') {
+                        let hex2: String = look.by_ref().take(4).collect();
+                        if let Ok(low) = u16::from_str_radix(&hex2, 16) {
+                            if (0xDC00..=0xDFFF).contains(&low) {
+                                // consume the second escape from the real iterator
+                                chars.next(); // \
+                                chars.next(); // u
+                                for _ in 0..4 {
+                                    chars.next();
+                                }
+                                let code =
+                                    0x10000 + (((unit as u32 - 0xD800) << 10) | (low as u32 - 0xDC00));
+                                if let Some(ch) = char::from_u32(code) {
+                                    result.push(ch);
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    result.push_str(&format!("\\u{:04x}", unit));
+                } else if let Some(ch) = char::from_u32(unit as u32) {
                     result.push(ch);
                 } else {
                     result.push_str(&format!("\\u{}", hex));
@@ -770,5 +795,34 @@ mod tests {
         assert!(encoded.contains("\\n"));
         let decoded = decode_json(&encoded, Encoding::Escape).unwrap();
         assert_eq!(decoded, "a\nb\"c");
+    }
+
+    #[test]
+    fn test_unicode_surrogate_roundtrip() {
+        let encoded = encode_json("😀hello", Encoding::Unicode).unwrap();
+        assert!(encoded.contains("\\ud83d") || encoded.contains("\\uD83D"));
+        let decoded = decode_json(&encoded, Encoding::Unicode).unwrap();
+        assert_eq!(decoded, "😀hello");
+    }
+
+    #[test]
+    fn test_utf16_roundtrip() {
+        let encoded = encode_json("测A", Encoding::Utf16).unwrap();
+        let decoded = decode_json(&encoded, Encoding::Utf16).unwrap();
+        assert_eq!(decoded, "测A");
+    }
+
+    #[test]
+    fn test_html_deep_and_entity() {
+        let encoded = encode_json("<a>", Encoding::HtmlDeep).unwrap();
+        assert!(encoded.contains("&#"));
+        let decoded = decode_json(&encoded, Encoding::HtmlEntity).unwrap();
+        assert_eq!(decoded, "<a>");
+    }
+
+    #[test]
+    fn test_sha1() {
+        let result = encode_json("hello", Encoding::Sha1).unwrap();
+        assert_eq!(result, "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d");
     }
 }

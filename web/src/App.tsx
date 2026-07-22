@@ -11,6 +11,8 @@ import {
   Star,
   ChevronUp,
   ChevronDown,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useStore } from './store';
 import { tools, categories, getToolName, getToolDesc } from './lib/tools';
@@ -56,6 +58,7 @@ function App() {
   } = useStore();
   const [activeTool, setActiveTool] = useState<string>('formatter');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -89,6 +92,7 @@ function App() {
   const selectTool = (id: string) => {
     setActiveTool(id);
     addRecentlyUsed(id);
+    setSidebarOpen(false);
   };
 
   const recentIds = recentlyUsed.filter((id) => !favoriteSet.has(id)).slice(0, 5);
@@ -171,17 +175,36 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 text-gray-900 dark:text-gray-100">
-      <aside className="w-72 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-cyan-50/20 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 text-gray-900 dark:text-gray-100">
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`w-72 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col fixed md:static inset-y-0 left-0 z-40 transform transition-transform md:transform-none ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 via-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
               <Zap className="w-5 h-5 text-white" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-base font-bold tracking-tight">JSON Toolkit</h1>
               <p className="text-xs text-gray-400">{t(lang, 'appDesc')}</p>
             </div>
+            <button
+              type="button"
+              className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -273,16 +296,23 @@ function App() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden min-w-0">
         {ActiveComponent && activeToolMeta ? (
           <div className="h-full flex flex-col">
-            <div className="px-6 py-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90 backdrop-blur flex items-center gap-3">
+            <div className="px-4 sm:px-6 py-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90 backdrop-blur flex items-center gap-3">
+              <button
+                type="button"
+                className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="w-4 h-4" />
+              </button>
               <div
                 className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                   activeTool === 'formatter'
                     ? 'bg-blue-50 dark:bg-blue-900/30'
                     : activeTool === 'mock'
-                      ? 'bg-purple-50 dark:bg-purple-900/30'
+                      ? 'bg-cyan-50 dark:bg-cyan-900/30'
                       : 'bg-gray-100 dark:bg-gray-800'
                 }`}
               >
