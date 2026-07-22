@@ -97,7 +97,18 @@ export default function Index() {
             <View>
               <Text className="label">编码方式</Text>
               <View className="encoding-row">
-                {['base64', 'url', 'unicode'].map((enc) => (
+                {[
+                  'unicode',
+                  'url',
+                  'utf16',
+                  'base64',
+                  'hex_ascii',
+                  'html_entity',
+                  'url_params',
+                  'jwt',
+                  'cookie',
+                  'escape',
+                ].map((enc) => (
                   <View
                     key={enc}
                     className={`encoding-btn ${encoding === enc ? 'active' : ''}`}

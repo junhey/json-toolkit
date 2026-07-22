@@ -142,10 +142,19 @@ export default function SidePanel() {
         )}
         {activeTool === 'decode' && (
           <select value={encoding} onChange={(e) => setEncoding(e.target.value)} style={inputStyle}>
+            <option value="unicode">Unicode</option>
+            <option value="url">URL</option>
+            <option value="utf16">UTF16</option>
             <option value="base64">Base64</option>
             <option value="base64url">Base64 URL</option>
-            <option value="url">URL Encode</option>
-            <option value="unicode">Unicode</option>
+            <option value="hex_ascii">Hex/ASCII</option>
+            <option value="proto_hex">Proto Hex</option>
+            <option value="html_entity">HTML Entity</option>
+            <option value="url_params">URL Params</option>
+            <option value="jwt">JWT</option>
+            <option value="cookie">Cookie</option>
+            <option value="gzip">Gzip</option>
+            <option value="escape">Unescape</option>
           </select>
         )}
         <button onClick={run} style={{ marginLeft: 'auto', padding: '6px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12 }}>

@@ -57,35 +57,105 @@ function sortObject(obj: any, order: 'asc' | 'desc'): any {
   return obj;
 }
 
+function maybePretty(decoded: string): string {
+  try {
+    JSON.parse(decoded);
+    return formatJson(decoded);
+  } catch {
+    return decoded;
+  }
+}
+
 // Decode
 export function decodeJson(input: string, encoding: string): string {
   switch (encoding) {
-    case 'base64': {
-      // Mini program base64 decode
-      const decoded = base64Decode(input.trim());
-      // Try to parse as JSON, if fails return raw
-      try {
-        JSON.parse(decoded);
-        return formatJson(decoded);
-      } catch {
-        return decoded;
+    case 'base64':
+      return maybePretty(base64Decode(input.trim()));
+    case 'url':
+      return maybePretty(decodeURIComponent(input.trim()));
+    case 'unicode':
+      return input.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
+        String.fromCharCode(parseInt(code, 16))
+      );
+    case 'utf16': {
+      const hex = input.replace(/\\x/gi, '').replace(/\s/g, '');
+      const bytes: number[] = [];
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes.push(parseInt(hex.slice(i, i + 2), 16));
       }
-    }
-    case 'url': {
-      const decoded = decodeURIComponent(input.trim());
-      try {
-        JSON.parse(decoded);
-        return formatJson(decoded);
-      } catch {
-        return decoded;
+      let out = '';
+      for (let i = 0; i + 1 < bytes.length; i += 2) {
+        out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
       }
+      return out;
     }
-    case 'unicode': {
-      const decoded = input.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => {
-        return String.fromCharCode(parseInt(code, 16));
+    case 'hex_ascii':
+    case 'hex': {
+      const cleaned = input.replace(/[\s:-]/g, '').replace(/^0x/i, '');
+      let out = '';
+      for (let i = 0; i < cleaned.length; i += 2) {
+        out += String.fromCharCode(parseInt(cleaned.slice(i, i + 2), 16));
+      }
+      return maybePretty(out);
+    }
+    case 'html_entity':
+      return input
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;|&#39;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
+    case 'url_params': {
+      const raw = input.trim();
+      const q = raw.includes('?') ? raw.split('?')[1].split('#')[0] : raw.split('#')[0];
+      const obj: Record<string, string | string[]> = {};
+      q.split('&').forEach((pair) => {
+        if (!pair) return;
+        const [k, v = ''] = pair.split('=');
+        const key = decodeURIComponent(k);
+        const val = decodeURIComponent(v);
+        if (obj[key] === undefined) obj[key] = val;
+        else if (Array.isArray(obj[key])) (obj[key] as string[]).push(val);
+        else obj[key] = [obj[key] as string, val];
       });
-      return decoded;
+      return JSON.stringify(obj, null, 2);
     }
+    case 'jwt': {
+      const parts = input.trim().split('.');
+      if (parts.length < 2) throw new Error('Invalid JWT');
+      const decodePart = (p: string) => {
+        const pad = p.length % 4 === 2 ? '==' : p.length % 4 === 3 ? '=' : '';
+        return JSON.parse(base64Decode((p + pad).replace(/-/g, '+').replace(/_/g, '/')));
+      };
+      return JSON.stringify(
+        {
+          header: decodePart(parts[0]),
+          payload: decodePart(parts[1]),
+          signature: parts[2] || '',
+        },
+        null,
+        2
+      );
+    }
+    case 'cookie': {
+      const obj: Record<string, string> = {};
+      input.split(';').forEach((part) => {
+        const [k, ...rest] = part.trim().split('=');
+        if (!k) return;
+        obj[k] = rest.join('=');
+      });
+      return JSON.stringify(obj, null, 2);
+    }
+    case 'escape':
+      return input
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\'/g, "'")
+        .replace(/\\\\/g, '\\');
     default:
       throw new Error(`Unsupported encoding: ${encoding}`);
   }

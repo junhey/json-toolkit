@@ -44,23 +44,13 @@ pub fn wasm_sort(input: &str, by: &str, order: &str) -> Result<String, JsValue> 
 
 #[wasm_bindgen]
 pub fn wasm_decode(input: &str, encoding: &str) -> Result<String, JsValue> {
-    let encoding = match encoding {
-        "base64url" => Encoding::Base64Url,
-        "url" => Encoding::Url,
-        "unicode" => Encoding::Unicode,
-        _ => Encoding::Base64,
-    };
+    let encoding = Encoding::from_id(encoding).unwrap_or(Encoding::Base64);
     decode::decode_json(input, encoding).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[wasm_bindgen]
 pub fn wasm_encode(input: &str, encoding: &str) -> Result<String, JsValue> {
-    let encoding = match encoding {
-        "base64url" => Encoding::Base64Url,
-        "url" => Encoding::Url,
-        "unicode" => Encoding::Unicode,
-        _ => Encoding::Base64,
-    };
+    let encoding = Encoding::from_id(encoding).unwrap_or(Encoding::Base64);
     decode::encode_json(input, encoding).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
