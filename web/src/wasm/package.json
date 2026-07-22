@@ -2,7 +2,7 @@
   "name": "json-core",
   "type": "module",
   "description": "Core JSON processing library for json-toolkit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "files": [
     "json_core_bg.wasm",

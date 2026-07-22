@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'JSON Toolkit',
     description: 'Format, minify, sort, query JSON with JSONPath, and more - powered by Rust WASM',
-    version: '0.1.0',
+    version: '0.2.0',
     permissions: ['storage', 'activeTab', 'sidePanel'],
     host_permissions: ['<all_urls>'],
     action: {

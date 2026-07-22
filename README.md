@@ -13,7 +13,7 @@ A powerful multi-platform JSON toolbox built with **Rust + Tauri 2.0 + React**. 
 | **Formatter** | Beautify JSON with configurable indent | ✅ | ✅ | ✅ | ✅ |
 | **Minifier** | Compress JSON, remove all whitespace | ✅ | ✅ | ✅ | ✅ |
 | **Sorter** | Sort by key or value, ascending/descending | ✅ | ✅ | ✅ | ✅ |
-| **Decoder** | Base64 / Base64URL / URL / Unicode encode & decode | ✅ | ✅ | ✅ | ✅ |
+| **Codec Toolkit** | 24 encode/decode transforms (Unicode/URL/UTF16/Base64/MD5/Hex/SHA1/HTML/Gzip/JWT/Cookie/Proto Hex…) | ✅ | ✅ | ✅ | ✅ |
 | **JSONPath** | Query JSON with JSONPath expressions | ✅ | ✅ | ✅ | ✅ |
 | **Tree View** | Collapsible interactive JSON tree browser | ✅ | ✅ | ✅ | — |
 | **Table View** | Flatten JSON arrays/objects to tables | ✅ | ✅ | ✅ | — |
@@ -196,8 +196,8 @@ pnpm build:tauri -- --target x86_64-apple-darwin   # Intel
 **CI builds**: Push a `v*` tag to trigger automatic builds for all desktop platforms:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 # → GitHub Actions builds .dmg (macOS), .msi (Windows), .deb (Linux)
 ```
 

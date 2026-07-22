@@ -40,23 +40,15 @@ pub fn sort_json(input: String, by: String, order: String) -> Result<String, Str
 
 #[tauri::command]
 pub fn decode_json(input: String, encoding: String) -> Result<String, String> {
-    let encoding = match encoding.as_str() {
-        "base64url" => Encoding::Base64Url,
-        "url" => Encoding::Url,
-        "unicode" => Encoding::Unicode,
-        _ => Encoding::Base64,
-    };
+    let encoding = Encoding::from_id(&encoding)
+        .ok_or_else(|| format!("Unsupported encoding: {}", encoding))?;
     decode::decode_json(&input, encoding).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn encode_json(input: String, encoding: String) -> Result<String, String> {
-    let encoding = match encoding.as_str() {
-        "base64url" => Encoding::Base64Url,
-        "url" => Encoding::Url,
-        "unicode" => Encoding::Unicode,
-        _ => Encoding::Base64,
-    };
+    let encoding = Encoding::from_id(&encoding)
+        .ok_or_else(|| format!("Unsupported encoding: {}", encoding))?;
     decode::encode_json(&input, encoding).map_err(|e| e.to_string())
 }
 

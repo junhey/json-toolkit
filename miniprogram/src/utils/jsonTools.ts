@@ -2,7 +2,7 @@
 // Pure JS implementation (WASM not directly available in MP runtime)
 // For WASM integration, see: https://developers.weixin.qq.com/miniprogram/dev/framework/client-sdk/wasm.html
 
-export type ToolId = 'format' | 'minify' | 'sort' | 'decode' | 'jsonpath' | 'validate' | 'csv';
+export type ToolId = 'format' | 'minify' | 'sort' | 'encode' | 'decode' | 'jsonpath' | 'validate' | 'csv';
 
 export interface ToolMeta {
   id: ToolId;
@@ -15,7 +15,8 @@ export const tools: ToolMeta[] = [
   { id: 'format', name: '格式化', icon: '{}', desc: '美化 JSON 格式' },
   { id: 'minify', name: '压缩', icon: '─', desc: '移除空白字符' },
   { id: 'sort', name: '排序', icon: '↑↓', desc: '按键名排序' },
-  { id: 'decode', name: '解码', icon: '🔓', desc: 'Base64/URL 解码' },
+  { id: 'encode', name: '编码', icon: '🔒', desc: 'Unicode/URL/Base64 等' },
+  { id: 'decode', name: '解码', icon: '🔓', desc: 'JWT/Cookie/Hex 等' },
   { id: 'jsonpath', name: 'JSONPath', icon: '$', desc: '路径查询提取' },
   { id: 'validate', name: '校验', icon: '✓', desc: 'JSON 语法校验' },
   { id: 'csv', name: 'CSV', icon: '📄', desc: '转 CSV 格式' },
@@ -57,35 +58,199 @@ function sortObject(obj: any, order: 'asc' | 'desc'): any {
   return obj;
 }
 
+function maybePretty(decoded: string): string {
+  try {
+    JSON.parse(decoded);
+    return formatJson(decoded);
+  } catch {
+    return decoded;
+  }
+}
+
+// Encode (pure JS subset)
+export function encodeJson(input: string, encoding: string): string {
+  switch (encoding) {
+    case 'unicode':
+      return input.replace(/[^\x00-\x7F]/g, (ch) => {
+        const code = ch.charCodeAt(0);
+        if (code > 0xffff) {
+          const cp = ch.codePointAt(0)!;
+          const hi = Math.floor((cp - 0x10000) / 0x400) + 0xd800;
+          const lo = ((cp - 0x10000) % 0x400) + 0xdc00;
+          return `\\u${hi.toString(16).padStart(4, '0')}\\u${lo.toString(16).padStart(4, '0')}`;
+        }
+        return `\\u${code.toString(16).padStart(4, '0')}`;
+      });
+    case 'url':
+      return encodeURIComponent(input);
+    case 'utf16': {
+      let out = '';
+      for (let i = 0; i < input.length; i++) {
+        const u = input.charCodeAt(i);
+        out += `\\x${((u >> 8) & 0xff).toString(16).padStart(2, '0')}\\x${(u & 0xff)
+          .toString(16)
+          .padStart(2, '0')}`;
+      }
+      return out;
+    }
+    case 'base64':
+      return base64Encode(input);
+    case 'hex': {
+      let out = '';
+      for (let i = 0; i < input.length; i++) {
+        out += input.charCodeAt(i).toString(16).padStart(2, '0');
+      }
+      return out;
+    }
+    case 'html':
+      return input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    case 'html_deep':
+      return Array.from(input)
+        .map((c) => `&#${c.codePointAt(0)};`)
+        .join('');
+    case 'html_to_js':
+      return `document.write("${input
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')}");`;
+    case 'escape':
+      return input
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+    case 'md5':
+    case 'sha1':
+    case 'gzip':
+      throw new Error(`${encoding} 请在 Web/桌面端使用（小程序未内置该算法）`);
+    default:
+      throw new Error(`Unsupported encoding: ${encoding}`);
+  }
+}
+
+function base64Encode(str: string): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let output = '';
+  const bytes: number[] = [];
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code < 0x80) bytes.push(code);
+    else if (code < 0x800) {
+      bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+    } else {
+      bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+    }
+  }
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i];
+    const b = bytes[i + 1];
+    const c = bytes[i + 2];
+    output += chars[a >> 2];
+    output += chars[((a & 3) << 4) | ((b ?? 0) >> 4)];
+    output += b === undefined ? '=' : chars[((b & 15) << 2) | ((c ?? 0) >> 6)];
+    output += c === undefined ? '=' : chars[c & 63];
+  }
+  return output;
+}
+
 // Decode
 export function decodeJson(input: string, encoding: string): string {
   switch (encoding) {
-    case 'base64': {
-      // Mini program base64 decode
-      const decoded = base64Decode(input.trim());
-      // Try to parse as JSON, if fails return raw
-      try {
-        JSON.parse(decoded);
-        return formatJson(decoded);
-      } catch {
-        return decoded;
+    case 'base64':
+      return maybePretty(base64Decode(input.trim()));
+    case 'url':
+      return maybePretty(decodeURIComponent(input.trim()));
+    case 'unicode':
+      return input.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
+        String.fromCharCode(parseInt(code, 16))
+      );
+    case 'utf16': {
+      const hex = input.replace(/\\x/gi, '').replace(/\s/g, '');
+      const bytes: number[] = [];
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes.push(parseInt(hex.slice(i, i + 2), 16));
       }
-    }
-    case 'url': {
-      const decoded = decodeURIComponent(input.trim());
-      try {
-        JSON.parse(decoded);
-        return formatJson(decoded);
-      } catch {
-        return decoded;
+      let out = '';
+      for (let i = 0; i + 1 < bytes.length; i += 2) {
+        out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
       }
+      return out;
     }
-    case 'unicode': {
-      const decoded = input.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => {
-        return String.fromCharCode(parseInt(code, 16));
+    case 'hex_ascii':
+    case 'hex': {
+      const cleaned = input.replace(/[\s:-]/g, '').replace(/^0x/i, '');
+      let out = '';
+      for (let i = 0; i < cleaned.length; i += 2) {
+        out += String.fromCharCode(parseInt(cleaned.slice(i, i + 2), 16));
+      }
+      return maybePretty(out);
+    }
+    case 'html_entity':
+      return input
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;|&#39;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
+    case 'url_params': {
+      const raw = input.trim();
+      const q = raw.includes('?') ? raw.split('?')[1].split('#')[0] : raw.split('#')[0];
+      const obj: Record<string, string | string[]> = {};
+      q.split('&').forEach((pair) => {
+        if (!pair) return;
+        const [k, v = ''] = pair.split('=');
+        const key = decodeURIComponent(k);
+        const val = decodeURIComponent(v);
+        if (obj[key] === undefined) obj[key] = val;
+        else if (Array.isArray(obj[key])) (obj[key] as string[]).push(val);
+        else obj[key] = [obj[key] as string, val];
       });
-      return decoded;
+      return JSON.stringify(obj, null, 2);
     }
+    case 'jwt': {
+      const parts = input.trim().split('.');
+      if (parts.length < 2) throw new Error('Invalid JWT');
+      const decodePart = (p: string) => {
+        const pad = p.length % 4 === 2 ? '==' : p.length % 4 === 3 ? '=' : '';
+        return JSON.parse(base64Decode((p + pad).replace(/-/g, '+').replace(/_/g, '/')));
+      };
+      return JSON.stringify(
+        {
+          header: decodePart(parts[0]),
+          payload: decodePart(parts[1]),
+          signature: parts[2] || '',
+        },
+        null,
+        2
+      );
+    }
+    case 'cookie': {
+      const obj: Record<string, string> = {};
+      input.split(';').forEach((part) => {
+        const [k, ...rest] = part.trim().split('=');
+        if (!k) return;
+        obj[k] = rest.join('=');
+      });
+      return JSON.stringify(obj, null, 2);
+    }
+    case 'escape':
+      return input
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\'/g, "'")
+        .replace(/\\\\/g, '\\');
     default:
       throw new Error(`Unsupported encoding: ${encoding}`);
   }
@@ -241,7 +406,11 @@ export function jsonToCsv(input: string, delimiter: string = ','): string {
 }
 
 // Run a tool
-export function runTool(toolId: ToolId, input: string, options?: { path?: string; encoding?: string; indent?: number }): string {
+export function runTool(
+  toolId: ToolId,
+  input: string,
+  options?: { path?: string; encoding?: string; indent?: number; mode?: 'encode' | 'decode' }
+): string {
   switch (toolId) {
     case 'format':
       return formatJson(input, options?.indent ?? 2);
@@ -249,6 +418,8 @@ export function runTool(toolId: ToolId, input: string, options?: { path?: string
       return minifyJson(input);
     case 'sort':
       return sortJson(input, 'asc');
+    case 'encode':
+      return encodeJson(input, options?.encoding ?? 'unicode');
     case 'decode':
       return decodeJson(input, options?.encoding ?? 'base64');
     case 'jsonpath':
