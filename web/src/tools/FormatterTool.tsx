@@ -38,6 +38,19 @@ const SAMPLE_JSON = `{
   "features": ["format", "fold", "copy path", "add child", "delete node"]
 }`;
 
+function looksMinifiedJson(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 24) return false;
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return false;
+  if (trimmed.split('\n').length > 2) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function tryParseNestedJsonStrings(value: unknown): unknown {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -80,6 +93,7 @@ export function FormatterTool() {
   const [nestedParse, setNestedParse] = useState(false);
   const [decodedFrom, setDecodedFrom] = useState<string | null>(null);
   const skipNextDebounce = useRef(false);
+  const keepMinified = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const tryAutoDecode = useCallback(async (text: string): Promise<{ decoded: string; type: string } | null> => {
@@ -152,6 +166,7 @@ export function FormatterTool() {
     async (override?: string) => {
       const source = override ?? doc;
       const result = await beautify(source);
+      keepMinified.current = false;
       skipNextDebounce.current = true;
       setDoc(result);
     },
@@ -199,6 +214,7 @@ export function FormatterTool() {
 
   const handlePasteText = useCallback(
     async (text: string) => {
+      keepMinified.current = false;
       if (pasteAutoFormat) {
         const result = await beautify(text, { fromPaste: true });
         skipNextDebounce.current = true;
@@ -211,10 +227,26 @@ export function FormatterTool() {
     [beautify, pasteAutoFormat]
   );
 
+  useEffect(() => {
+    if (!pasteAutoFormat || keepMinified.current) return;
+    if (!looksMinifiedJson(doc)) return;
+    let cancelled = false;
+    (async () => {
+      const result = await beautify(doc, { fromPaste: true });
+      if (cancelled || result === doc) return;
+      skipNextDebounce.current = true;
+      setDoc(result);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [doc, pasteAutoFormat, beautify]);
+
   const runMinify = async () => {
     if (!doc.trim()) return;
     try {
       const result = await getAdapter().minify(doc);
+      keepMinified.current = true;
       skipNextDebounce.current = true;
       setDoc(result);
       setError(null);

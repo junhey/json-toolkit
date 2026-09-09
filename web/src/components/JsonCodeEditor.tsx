@@ -3,6 +3,7 @@ import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
 import { HighlightStyle, syntaxHighlighting, foldAll, unfoldAll, codeFolding, foldGutter } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
+import { Prec } from '@codemirror/state';
 import { openSearchPanel } from '@codemirror/search';
 import { useMemo, useRef, forwardRef, useImperativeHandle, useState, useCallback, useEffect } from 'react';
 import { jsonEditorHooks, jsonNodeActionPlugin, type JsonEditorAction } from './jsonNodePlugin';
@@ -294,7 +295,7 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
         EditorView.lineWrapping,
         fillTheme,
         syntaxHighlighting(isDark ? darkHighlight : lightHighlight),
-        pasteHandler,
+        Prec.high(pasteHandler),
         updatePath,
         jsonEditorHooks.of({
           enabled: powerEdit,
