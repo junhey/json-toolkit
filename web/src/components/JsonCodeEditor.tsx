@@ -151,6 +151,7 @@ export interface JsonCodeEditorHandle {
   unfoldAll: () => void;
   openSearch: () => void;
   currentPath: () => string;
+  getValue: () => string;
 }
 
 interface JsonCodeEditorProps {
@@ -268,6 +269,7 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
         if (view) openSearchPanel(view);
       },
       currentPath: () => cursorPath,
+      getValue: () => cmRef.current?.view?.state.doc.toString() ?? '',
     }));
 
     const confirmAdd = () => {

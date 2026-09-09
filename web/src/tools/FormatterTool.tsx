@@ -152,7 +152,7 @@ export function FormatterTool() {
 
   const process = useCallback(
     async (override?: string) => {
-      const source = override ?? doc;
+      const source = override ?? editorRef.current?.getValue() ?? doc;
       const result = await beautify(source);
       keepMinified.current = false;
       skipNextDebounce.current = true;
@@ -231,9 +231,10 @@ export function FormatterTool() {
   }, [doc, pasteAutoFormat, beautify]);
 
   const runMinify = async () => {
-    if (!doc.trim()) return;
+    const source = editorRef.current?.getValue() ?? doc;
+    if (!source.trim()) return;
     try {
-      const result = await getAdapter().minify(doc);
+      const result = await getAdapter().minify(source);
       keepMinified.current = true;
       skipNextDebounce.current = true;
       setDoc(result);
@@ -244,12 +245,13 @@ export function FormatterTool() {
   };
 
   const applyQuickCodec = async (mode: 'encode' | 'decode', encoding: string) => {
-    if (!doc.trim()) return;
+    const source = editorRef.current?.getValue() ?? doc;
+    if (!source.trim()) return;
     try {
       const result =
         mode === 'encode'
-          ? await getAdapter().encode(doc, encoding)
-          : await getAdapter().decode(doc, encoding);
+          ? await getAdapter().encode(source, encoding)
+          : await getAdapter().decode(source, encoding);
       skipNextDebounce.current = true;
       if (mode === 'decode' || encoding === 'unicode') {
         const formatted = await beautify(result, { fromPaste: true });
@@ -416,7 +418,7 @@ export function FormatterTool() {
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
-            onClick={() => copy(doc)}
+            onClick={() => copy(editorRef.current?.getValue() ?? doc)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
             title={t(lang, 'copy')}
           >
@@ -424,7 +426,7 @@ export function FormatterTool() {
           </button>
           <button
             type="button"
-            onClick={() => downloadText('formatted.json', doc)}
+            onClick={() => downloadText('formatted.json', editorRef.current?.getValue() ?? doc)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
             title={t(lang, 'download')}
           >
