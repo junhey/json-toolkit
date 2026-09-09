@@ -138,6 +138,99 @@ button, a, input, select, textarea {
   overscroll-behavior: contain;
 }
 
+.json-node-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 10px;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.json-node-actions-persist,
+.json-node-actions-hover {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.json-node-actions-persist {
+  opacity: 0.32;
+}
+
+.json-node-actions-hover {
+  opacity: 0;
+  pointer-events: none;
+  margin-left: 1px;
+}
+
+.cm-line:hover .json-node-actions-persist,
+.cm-activeLine .json-node-actions-persist,
+.cm-line:hover .json-node-actions-hover,
+.cm-activeLine .json-node-actions-hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.json-node-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.json-node-btn-add {
+  color: #16a34a;
+}
+
+.json-node-btn-del {
+  color: #dc2626;
+}
+
+.json-node-btn:hover {
+  background: #e2e8f0;
+}
+
+.dark .json-node-btn:hover {
+  background: #1e293b;
+}
+
+.json-node-btn-add:hover {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.json-node-btn-del:hover {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.json-node-btn-copy:hover {
+  color: #2563eb;
+}
+
+.dark .json-node-btn-add:hover {
+  background: #14532d;
+  color: #86efac;
+}
+
+.dark .json-node-btn-del:hover {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.json-code-editor .cm-foldGutter span {
+  cursor: pointer;
+  font-size: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fade-in,
   button, a, input, select, textarea {

@@ -6,33 +6,38 @@ import {
   Trash2,
   Sparkles,
   AlertCircle,
-  Columns2,
-  Rows2,
   Minimize2,
   AlignLeft,
-  ArrowLeftRight,
+  FoldVertical,
+  UnfoldVertical,
+  Search,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { downloadText, useClipboard } from '../components/ToolShell';
-import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { JsonCodeEditor, type JsonCodeEditorHandle } from '../components/JsonCodeEditor';
 import { useIsDark } from '../lib/useIsDark';
+import { shouldAutoBeautify } from '../lib/jsonDoc';
 
 const SAMPLE_JSON = `{
-  "app": "JSON Toolkit",
-  "version": 2,
+  "name": "JSON Toolkit",
+  "born": "2024",
+  "message": "面向日常使用的专业 JSON 编辑器",
   "enabled": true,
   "owner": null,
-  "features": ["format", "minify", "jsonpath", "diff"],
-  "nested": "{\\"ok\\":true,\\"count\\":3}",
-  "meta": {
-    "createdAt": "2026-09-09T03:00:00Z",
-    "tags": ["dev", "json"]
-  }
+  "philosophy": {
+    "belief": "先格式化，再编辑",
+    "promise": "大文档可滚动、可高亮、可折叠",
+    "wish": "复制路径、增删节点，就地完成"
+  },
+  "milestones": [
+    { "year": 2024, "event": "首次发布" },
+    { "year": 2025, "event": "多端工具箱" },
+    { "year": 2026, "event": "就地 JSON 编辑器" }
+  ],
+  "features": ["format", "fold", "copy path", "add child", "delete node"]
 }`;
-
-type LayoutMode = 'horizontal' | 'vertical';
 
 function tryParseNestedJsonStrings(value: unknown): unknown {
   if (typeof value === 'string') {
@@ -66,19 +71,18 @@ export function FormatterTool() {
   const { lang } = useStore();
   const isDark = useIsDark();
   const { copied, copy } = useClipboard();
-  const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
+  const editorRef = useRef<JsonCodeEditorHandle>(null);
+  const [doc, setDoc] = useState(SAMPLE_JSON);
   const [error, setError] = useState<string | null>(null);
   const [indent, setIndent] = useState(2);
   const [sortKeys, setSortKeys] = useState(false);
   const [autoDecode, setAutoDecode] = useState(true);
   const [pasteAutoFormat, setPasteAutoFormat] = useState(true);
   const [nestedParse, setNestedParse] = useState(false);
-  const [realTime, setRealTime] = useState(true);
-  const [layout, setLayout] = useState<LayoutMode>('horizontal');
   const [decodedFrom, setDecodedFrom] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const skipNextDebounce = useRef(false);
+  const keepMinified = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const tryAutoDecode = useCallback(async (text: string): Promise<{ decoded: string; type: string } | null> => {
     const trimmed = text.trim();
@@ -105,77 +109,135 @@ export function FormatterTool() {
     );
   }, []);
 
-  const process = useCallback(
-    async (overrideInput?: string) => {
-      const text = overrideInput ?? input;
+  const beautify = useCallback(
+    async (text: string, opts?: { fromPaste?: boolean }) => {
       if (!text.trim()) {
-        setOutput('');
         setError(null);
         setDecodedFrom(null);
-        return;
+        return '';
       }
 
-      setError(null);
-      let actualInput = text;
+      let actual = text;
       setDecodedFrom(null);
 
       if (autoDecode && !text.trim().startsWith('{') && !text.trim().startsWith('[')) {
         const decoded = await tryAutoDecode(text);
         if (decoded) {
-          actualInput = decoded.decoded;
+          actual = decoded.decoded;
           setDecodedFrom(decoded.type);
         }
       }
 
       try {
-        let toFormat = actualInput;
+        let toFormat = actual;
         if (nestedParse) {
           try {
-            const parsed = JSON.parse(actualInput);
+            const parsed = JSON.parse(actual);
             toFormat = JSON.stringify(tryParseNestedJsonStrings(parsed));
           } catch {
-            // keep original; format will report parse error
+            // keep original
           }
         }
         const result = await getAdapter().format(toFormat, indent, sortKeys);
-        setOutput(result);
         setError(null);
+        return result;
       } catch (e: any) {
-        setError(e.toString().replace(/^Error:\s*/, ''));
-        setOutput('');
+        const msg = e.toString().replace(/^Error:\s*/, '');
+        setError(msg);
+        return opts?.fromPaste ? text : actual;
       }
     },
-    [input, indent, sortKeys, autoDecode, nestedParse, tryAutoDecode]
+    [autoDecode, indent, nestedParse, sortKeys, tryAutoDecode]
+  );
+
+  const process = useCallback(
+    async (override?: string) => {
+      const source = override ?? editorRef.current?.getValue() ?? doc;
+      const result = await beautify(source);
+      keepMinified.current = false;
+      skipNextDebounce.current = true;
+      setDoc(result);
+    },
+    [beautify, doc]
   );
 
   useEffect(() => {
-    if (!realTime || !input.trim()) return;
+    if (!doc.trim()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        JSON.parse(doc);
+        const result = await getAdapter().format(doc, indent, sortKeys);
+        if (cancelled || result === doc) return;
+        skipNextDebounce.current = true;
+        setDoc(result);
+      } catch {
+        // keep current document
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Re-pretty when indent/sort change, not on every doc keystroke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indent, sortKeys]);
+
+  useEffect(() => {
+    if (!doc.trim()) return;
     if (skipNextDebounce.current) {
       skipNextDebounce.current = false;
       return;
     }
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => process(), 280);
+    debounceRef.current = setTimeout(() => {
+      try {
+        JSON.parse(doc);
+        setError(null);
+      } catch (e: any) {
+        setError(String(e?.message || e));
+      }
+    }, 280);
     return () => clearTimeout(debounceRef.current);
-  }, [input, indent, sortKeys, autoDecode, nestedParse, realTime, process]);
+  }, [doc]);
 
   const handlePasteText = useCallback(
     async (text: string) => {
-      setInput(text);
+      keepMinified.current = false;
       if (pasteAutoFormat) {
+        const result = await beautify(text, { fromPaste: true });
         skipNextDebounce.current = true;
-        await process(text);
+        setDoc(result);
+        return;
       }
+      skipNextDebounce.current = true;
+      setDoc(text);
     },
-    [pasteAutoFormat, process]
+    [beautify, pasteAutoFormat]
   );
 
+  useEffect(() => {
+    if (!pasteAutoFormat || keepMinified.current) return;
+    if (!shouldAutoBeautify(doc)) return;
+    let cancelled = false;
+    (async () => {
+      const result = await beautify(doc, { fromPaste: true });
+      if (cancelled || result === doc) return;
+      skipNextDebounce.current = true;
+      setDoc(result);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [doc, pasteAutoFormat, beautify]);
+
   const runMinify = async () => {
-    const src = output || input;
-    if (!src.trim()) return;
+    const source = editorRef.current?.getValue() ?? doc;
+    if (!source.trim()) return;
     try {
-      const result = await getAdapter().minify(src);
-      setOutput(result);
+      const result = await getAdapter().minify(source);
+      keepMinified.current = true;
+      skipNextDebounce.current = true;
+      setDoc(result);
       setError(null);
     } catch (e: any) {
       setError(e.toString().replace(/^Error:\s*/, ''));
@@ -183,19 +245,19 @@ export function FormatterTool() {
   };
 
   const applyQuickCodec = async (mode: 'encode' | 'decode', encoding: string) => {
-    const src = input.trim() ? input : output;
-    if (!src.trim()) return;
+    const source = editorRef.current?.getValue() ?? doc;
+    if (!source.trim()) return;
     try {
       const result =
         mode === 'encode'
-          ? await getAdapter().encode(src, encoding)
-          : await getAdapter().decode(src, encoding);
-      setInput(result);
+          ? await getAdapter().encode(source, encoding)
+          : await getAdapter().decode(source, encoding);
       skipNextDebounce.current = true;
       if (mode === 'decode' || encoding === 'unicode') {
-        await process(result);
+        const formatted = await beautify(result, { fromPaste: true });
+        setDoc(formatted);
       } else {
-        setOutput(result);
+        setDoc(result);
       }
       setError(null);
     } catch (e: any) {
@@ -203,25 +265,17 @@ export function FormatterTool() {
     }
   };
 
-  const swapPanes = () => {
-    if (!output) return;
-    setInput(output);
+  const loadSample = () => {
     skipNextDebounce.current = true;
-    process(output);
-  };
-
-  const copyOutput = () => copy(output);
-  const clearAll = () => {
-    setInput('');
-    setOutput('');
+    setDoc(SAMPLE_JSON);
     setError(null);
     setDecodedFrom(null);
   };
 
-  const loadSample = () => {
-    skipNextDebounce.current = true;
-    setInput(SAMPLE_JSON);
-    process(SAMPLE_JSON);
+  const clearAll = () => {
+    setDoc('');
+    setError(null);
+    setDecodedFrom(null);
   };
 
   useEffect(() => {
@@ -235,10 +289,6 @@ export function FormatterTool() {
     return () => window.removeEventListener('keydown', onKey);
   }, [process]);
 
-  const inputLines = input ? input.split('\n').length : 0;
-  const outputLines = output ? output.split('\n').length : 0;
-  const outputSize = new Blob([output]).size;
-
   const Toggle = ({
     checked,
     onChange,
@@ -248,16 +298,9 @@ export function FormatterTool() {
     onChange: (v: boolean) => void;
     label: string;
   }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-center gap-1.5 text-sm select-none"
-      title={label}
-    >
+    <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-1.5 text-sm select-none">
       <span
-        className={`relative w-8 h-4.5 rounded-full transition-colors ${
-          checked ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
-        }`}
+        className={`relative rounded-full transition-colors ${checked ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
         style={{ height: 18, width: 32 }}
       >
         <span
@@ -290,34 +333,32 @@ export function FormatterTool() {
           {lang === 'zh' ? '压缩' : 'Minify'}
         </button>
 
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setLayout('horizontal')}
-            className={`px-2.5 py-1.5 text-sm flex items-center gap-1 ${
-              layout === 'horizontal'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-            }`}
-            title={lang === 'zh' ? '左右布局' : 'Side by side'}
-          >
-            <Columns2 className="w-3.5 h-3.5" />
-            {lang === 'zh' ? '左右' : 'LR'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayout('vertical')}
-            className={`px-2.5 py-1.5 text-sm flex items-center gap-1 ${
-              layout === 'vertical'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-            }`}
-            title={lang === 'zh' ? '上下布局' : 'Stacked'}
-          >
-            <Rows2 className="w-3.5 h-3.5" />
-            {lang === 'zh' ? '上下' : 'TB'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => editorRef.current?.foldAll()}
+          className="px-2 py-1.5 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1"
+          title={t(lang, 'collapseAll')}
+        >
+          <FoldVertical className="w-3.5 h-3.5" />
+          {lang === 'zh' ? '折叠' : 'Fold'}
+        </button>
+        <button
+          type="button"
+          onClick={() => editorRef.current?.unfoldAll()}
+          className="px-2 py-1.5 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1"
+          title={t(lang, 'expandAll')}
+        >
+          <UnfoldVertical className="w-3.5 h-3.5" />
+          {lang === 'zh' ? '展开' : 'Unfold'}
+        </button>
+        <button
+          type="button"
+          onClick={() => editorRef.current?.openSearch()}
+          className="px-2 py-1.5 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1"
+        >
+          <Search className="w-3.5 h-3.5" />
+          {lang === 'zh' ? '查找' : 'Find'}
+        </button>
 
         <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 mx-0.5" />
 
@@ -341,12 +382,7 @@ export function FormatterTool() {
           onChange={setPasteAutoFormat}
           label={lang === 'zh' ? '粘贴美化' : 'Paste format'}
         />
-        <Toggle
-          checked={nestedParse}
-          onChange={setNestedParse}
-          label={lang === 'zh' ? '嵌套解析' : 'Nested'}
-        />
-        <Toggle checked={realTime} onChange={setRealTime} label={t(lang, 'realTime')} />
+        <Toggle checked={nestedParse} onChange={setNestedParse} label={lang === 'zh' ? '嵌套解析' : 'Nested'} />
 
         <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 mx-0.5" />
 
@@ -371,7 +407,6 @@ export function FormatterTool() {
         >
           URL {lang === 'zh' ? '解码' : 'Dec'}
         </button>
-
         <button
           type="button"
           onClick={loadSample}
@@ -379,18 +414,37 @@ export function FormatterTool() {
         >
           {t(lang, 'loadSample')}
         </button>
-        <button
-          type="button"
-          onClick={swapPanes}
-          className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-          title={lang === 'zh' ? '结果写回输入' : 'Use output as input'}
-        >
-          <ArrowLeftRight className="w-4 h-4" />
-        </button>
+
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => copy(editorRef.current?.getValue() ?? doc)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+            title={t(lang, 'copy')}
+          >
+            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadText('formatted.json', editorRef.current?.getValue() ?? doc)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+            title={t(lang, 'download')}
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={clearAll}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+            title={t(lang, 'clear')}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {decodedFrom && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs border border-amber-200/70 dark:border-amber-800/60">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs border border-amber-200/70 dark:border-amber-800/60 flex-shrink-0">
           <Sparkles className="w-3.5 h-3.5" />
           {lang === 'zh'
             ? `检测到 ${decodedFrom} 编码，已自动解码并美化`
@@ -398,77 +452,27 @@ export function FormatterTool() {
         </div>
       )}
 
-      <div className={layout === 'horizontal' ? 'tool-split' : 'tool-split-stacked'}>
-        <div className="tool-pane">
-          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <label className="text-xs font-medium text-gray-500">
-              {lang === 'zh' ? '输入' : 'Input'}
-            </label>
-            <span className="text-xs text-gray-400">{inputLines} lines</span>
-          </div>
-          <JsonCodeEditor
-            value={input}
-            onChange={setInput}
-            onPasteText={handlePasteText}
-            isDark={isDark}
-            placeholder={
-              lang === 'zh'
-                ? '粘贴 JSON（支持自动美化）/ Base64 / URL 编码内容...'
-                : 'Paste JSON (auto-beautify) / Base64 / URL-encoded...'
-            }
-          />
+      {error && (
+        <div className="flex items-start gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs border border-red-200/70 dark:border-red-800/60 flex-shrink-0">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span className="break-all">{error}</span>
         </div>
+      )}
 
-        <div className="tool-pane">
-          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <label className="text-xs font-medium text-gray-500">
-              {lang === 'zh' ? '解析结果' : 'Result'}
-            </label>
-            {output && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-400">
-                  {outputLines} lines · {outputSize >= 1024 ? `${(outputSize / 1024).toFixed(1)}KB` : `${outputSize}B`}
-                </span>
-                <button
-                  onClick={copyOutput}
-                  className="text-xs flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors"
-                >
-                  {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                  {copied ? t(lang, 'copied') : t(lang, 'copy')}
-                </button>
-                <button
-                  onClick={() => downloadText('formatted.json', output)}
-                  className="text-xs flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors"
-                >
-                  <Download className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={clearAll}
-                  className="text-xs flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {error ? (
-            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div className="break-all">{error}</div>
-            </div>
-          ) : (
-            <JsonCodeEditor
-              value={output}
-              readOnly
-              isDark={isDark}
-              placeholder={
-                lang === 'zh' ? '格式化结果将显示在这里...' : 'Formatted output will appear here...'
-              }
-            />
-          )}
-        </div>
-      </div>
+      <JsonCodeEditor
+        ref={editorRef}
+        value={doc}
+        onChange={setDoc}
+        onPasteText={handlePasteText}
+        isDark={isDark}
+        powerEdit
+        indent={indent}
+        placeholder={
+          lang === 'zh'
+            ? '粘贴 JSON 将自动美化。行号可折叠；悬停行末可复制路径、复制内容、添加或删除节点。'
+            : 'Paste JSON to beautify. Fold from the gutter; hover a line to copy path, add or delete nodes.'
+        }
+      />
     </div>
   );
 }
