@@ -5,6 +5,7 @@ import { getAdapter } from '../lib/adapter';
 import { GitCompareArrows, Zap } from 'lucide-react';
 import type { DiffResult } from '../lib/types';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 const diffColors: Record<string, string> = {
   modified: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
@@ -21,17 +22,12 @@ const diffLabels: Record<string, string> = {
 };
 
 export function DiffTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [left, setLeft] = useState('');
   const [right, setRight] = useState('');
   const [diffs, setDiffs] = useState<DiffResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const changedDiffs = useMemo(() => (diffs || []).filter((d) => d.diff_type !== 'same'), [diffs]);
 
@@ -48,8 +44,8 @@ export function DiffTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      <div className="flex items-center gap-2">
+    <div className="tool-page">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={process}
           className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -63,25 +59,25 @@ export function DiffTool() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 h-72">
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1.5">{t(lang, 'leftJson')}</label>
+      <div className="tool-split">
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 flex-shrink-0">{t(lang, 'leftJson')}</label>
           <JsonCodeEditor value={left} onChange={setLeft} isDark={isDark} placeholder="JSON A..." />
         </div>
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1.5">{t(lang, 'rightJson')}</label>
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 flex-shrink-0">{t(lang, 'rightJson')}</label>
           <JsonCodeEditor value={right} onChange={setRight} isDark={isDark} placeholder="JSON B..." />
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
-        <label className="text-xs font-medium text-gray-500 mb-1.5 block">{t(lang, 'result')}</label>
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <label className="text-xs font-medium text-gray-500 mb-1.5 flex-shrink-0">{t(lang, 'result')}</label>
         {error ? (
-          <div className="p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm">
+          <div className="flex-1 min-h-0 overflow-auto p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm">
             {error}
           </div>
         ) : diffs ? (
-          <div className="h-full overflow-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+          <div className="flex-1 min-h-0 overflow-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
             {changedDiffs.length === 0 ? (
               <div className="p-4 text-center text-green-500 text-sm">✓ JSON objects are identical</div>
             ) : (
@@ -99,7 +95,7 @@ export function DiffTool() {
             )}
           </div>
         ) : (
-          <div className="h-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+          <div className="flex-1 min-h-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
             {t(lang, 'noData')}
           </div>
         )}

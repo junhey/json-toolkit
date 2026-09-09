@@ -15,8 +15,22 @@ import {
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
-import { downloadText } from '../components/ToolShell';
+import { downloadText, useClipboard } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
+
+const SAMPLE_JSON = `{
+  "app": "JSON Toolkit",
+  "version": 2,
+  "enabled": true,
+  "owner": null,
+  "features": ["format", "minify", "jsonpath", "diff"],
+  "nested": "{\\"ok\\":true,\\"count\\":3}",
+  "meta": {
+    "createdAt": "2026-09-09T03:00:00Z",
+    "tags": ["dev", "json"]
+  }
+}`;
 
 type LayoutMode = 'horizontal' | 'vertical';
 
@@ -49,7 +63,9 @@ function tryParseNestedJsonStrings(value: unknown): unknown {
 }
 
 export function FormatterTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
+  const { copied, copy } = useClipboard();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -60,24 +76,9 @@ export function FormatterTool() {
   const [nestedParse, setNestedParse] = useState(false);
   const [realTime, setRealTime] = useState(true);
   const [layout, setLayout] = useState<LayoutMode>('horizontal');
-  const [copied, setCopied] = useState(false);
   const [decodedFrom, setDecodedFrom] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const skipNextDebounce = useRef(false);
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  const copy = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  }, []);
 
   const tryAutoDecode = useCallback(async (text: string): Promise<{ decoded: string; type: string } | null> => {
     const trimmed = text.trim();
@@ -217,6 +218,23 @@ export function FormatterTool() {
     setDecodedFrom(null);
   };
 
+  const loadSample = () => {
+    skipNextDebounce.current = true;
+    setInput(SAMPLE_JSON);
+    process(SAMPLE_JSON);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        process();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [process]);
+
   const inputLines = input ? input.split('\n').length : 0;
   const outputLines = output ? output.split('\n').length : 0;
   const outputSize = new Blob([output]).size;
@@ -253,9 +271,8 @@ export function FormatterTool() {
   );
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap px-3 py-2.5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+    <div className="tool-page">
+      <div className="tool-toolbar">
         <button
           type="button"
           onClick={() => process()}
@@ -313,7 +330,7 @@ export function FormatterTool() {
           >
             <option value={2}>2 SP</option>
             <option value={4}>4 SP</option>
-            <option value={8}>Tab</option>
+            <option value={8}>8 SP</option>
           </select>
         </label>
 
@@ -357,6 +374,13 @@ export function FormatterTool() {
 
         <button
           type="button"
+          onClick={loadSample}
+          className="text-xs px-2 py-1 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          {t(lang, 'loadSample')}
+        </button>
+        <button
+          type="button"
           onClick={swapPanes}
           className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800"
           title={lang === 'zh' ? '结果写回输入' : 'Use output as input'}
@@ -374,13 +398,9 @@ export function FormatterTool() {
         </div>
       )}
 
-      <div
-        className={`flex-1 min-h-0 gap-3 ${
-          layout === 'horizontal' ? 'grid grid-cols-1 lg:grid-cols-2' : 'grid grid-cols-1'
-        }`}
-      >
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+      <div className={layout === 'horizontal' ? 'tool-split' : 'tool-split-stacked'}>
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">
               {lang === 'zh' ? '输入' : 'Input'}
             </label>
@@ -391,7 +411,6 @@ export function FormatterTool() {
             onChange={setInput}
             onPasteText={handlePasteText}
             isDark={isDark}
-            minHeight={layout === 'vertical' ? '280px' : '100%'}
             placeholder={
               lang === 'zh'
                 ? '粘贴 JSON（支持自动美化）/ Base64 / URL 编码内容...'
@@ -400,15 +419,15 @@ export function FormatterTool() {
           />
         </div>
 
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">
               {lang === 'zh' ? '解析结果' : 'Result'}
             </label>
             {output && (
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-400">
-                  {outputLines} lines · {(outputSize / 1024).toFixed(1)}KB
+                  {outputLines} lines · {outputSize >= 1024 ? `${(outputSize / 1024).toFixed(1)}KB` : `${outputSize}B`}
                 </span>
                 <button
                   onClick={copyOutput}
@@ -434,16 +453,15 @@ export function FormatterTool() {
           </div>
 
           {error ? (
-            <div className="flex-1 min-h-[220px] p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div>{error}</div>
+              <div className="break-all">{error}</div>
             </div>
           ) : (
             <JsonCodeEditor
               value={output}
               readOnly
               isDark={isDark}
-              minHeight={layout === 'vertical' ? '280px' : '100%'}
               placeholder={
                 lang === 'zh' ? '格式化结果将显示在这里...' : 'Formatted output will appear here...'
               }

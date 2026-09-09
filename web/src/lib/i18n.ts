@@ -20,6 +20,8 @@ const translations = {
     clear: '清空',
     sample: '示例',
     process: '处理',
+    loadSample: '加载示例',
+    shortcutHint: 'Ctrl + Enter 格式化',
     // Tools
     formatter: 'JSON 格式化',
     formatterDesc: '美化和格式化 JSON 字符串',
@@ -107,6 +109,8 @@ const translations = {
     clear: 'Clear',
     sample: 'Sample',
     process: 'Process',
+    loadSample: 'Load sample',
+    shortcutHint: 'Ctrl + Enter to format',
     formatter: 'JSON Formatter',
     formatterDesc: 'Beautify and format JSON',
     minifier: 'JSON Minifier',

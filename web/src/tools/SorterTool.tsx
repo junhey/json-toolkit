@@ -3,31 +3,23 @@ import { Copy, Check, Download, Trash2, AlertCircle, Activity, ArrowUpDown, Arro
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
-import { downloadText } from '../components/ToolShell';
+import { downloadText, useClipboard } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 export function SorterTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
+  const { copied, copy } = useClipboard();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'key' | 'value'>('key');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [realTime, setRealTime] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [keyCount, setKeyCount] = useState(0);
   const [sortTime, setSortTime] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  const copy = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  }, []);
 
   const process = useCallback(async () => {
     if (!input.trim()) {
@@ -78,9 +70,8 @@ export function SorterTool() {
   const inputLines = input ? input.split('\n').length : 0;
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Options bar */}
-      <div className="flex items-center gap-4 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+    <div className="tool-page">
+      <div className="tool-toolbar">
         {/* Sort By */}
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-gray-500">{t(lang, 'sortBy')}:</span>
@@ -161,10 +152,9 @@ export function SorterTool() {
       </div>
 
       {/* Input/Output panels */}
-      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
-        {/* Input */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+      <div className="tool-split">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'input')}</label>
             <span className="text-xs text-gray-400">{inputLines} lines</span>
           </div>
@@ -177,8 +167,8 @@ export function SorterTool() {
         </div>
 
         {/* Output */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'output')}</label>
             {output && (
               <div className="flex items-center gap-3">
@@ -206,7 +196,7 @@ export function SorterTool() {
           </div>
 
           {error ? (
-            <div className="flex-1 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>{error}</div>
             </div>

@@ -5,6 +5,8 @@ import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
 import { useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 
+const HIGHLIGHT_CHAR_LIMIT = 250_000;
+
 const lightHighlight = HighlightStyle.define([
   { tag: t.propertyName, color: '#b91c1c', fontWeight: '600' },
   { tag: t.string, color: '#be185d' },
@@ -31,95 +33,107 @@ const darkHighlight = HighlightStyle.define([
   { tag: t.separator, color: '#64748b' },
 ]);
 
-const lightTheme = EditorView.theme({
+const fillTheme = EditorView.theme({
   '&': {
-    fontSize: '13px',
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
     height: '100%',
-    borderRadius: '10px',
+    maxHeight: '100%',
   },
   '.cm-scroller': {
+    overflow: 'auto',
     fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, 'Courier New', monospace",
     lineHeight: '1.65',
     padding: '8px 0',
   },
   '.cm-content': {
-    caretColor: '#2563eb',
+    minHeight: '100%',
   },
   '.cm-gutters': {
-    backgroundColor: '#f8fafc',
-    color: '#94a3b8',
     border: 'none',
-    borderRight: '1px solid #e2e8f0',
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#f1f5f9',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#e2e8f0',
-  },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
-    backgroundColor: '#bfdbfe',
-  },
-  '.cm-cursor, .cm-dropCursor': {
-    borderLeftColor: '#2563eb',
-  },
-  '.cm-matchingBracket': {
-    backgroundColor: '#dbeafe',
-    outline: '1px solid #93c5fd',
   },
   '.cm-foldPlaceholder': {
-    background: '#e2e8f0',
     border: 'none',
-    color: '#64748b',
   },
-}, { dark: false });
+});
 
-const darkTheme = EditorView.theme({
-  '&': {
-    fontSize: '13px',
-    backgroundColor: '#0b1220',
-    color: '#e2e8f0',
-    height: '100%',
-    borderRadius: '10px',
+const lightTheme = EditorView.theme(
+  {
+    '&': {
+      fontSize: '13px',
+      backgroundColor: '#ffffff',
+      color: '#0f172a',
+      borderRadius: '10px',
+    },
+    '.cm-content': {
+      caretColor: '#2563eb',
+    },
+    '.cm-gutters': {
+      backgroundColor: '#f8fafc',
+      color: '#94a3b8',
+      borderRight: '1px solid #e2e8f0',
+    },
+    '.cm-activeLine': {
+      backgroundColor: '#f1f5f9',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: '#e2e8f0',
+    },
+    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
+      backgroundColor: '#bfdbfe',
+    },
+    '.cm-cursor, .cm-dropCursor': {
+      borderLeftColor: '#2563eb',
+    },
+    '.cm-matchingBracket': {
+      backgroundColor: '#dbeafe',
+      outline: '1px solid #93c5fd',
+    },
+    '.cm-foldPlaceholder': {
+      background: '#e2e8f0',
+      color: '#64748b',
+    },
   },
-  '.cm-scroller': {
-    fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, 'Courier New', monospace",
-    lineHeight: '1.65',
-    padding: '8px 0',
+  { dark: false }
+);
+
+const darkTheme = EditorView.theme(
+  {
+    '&': {
+      fontSize: '13px',
+      backgroundColor: '#0b1220',
+      color: '#e2e8f0',
+      borderRadius: '10px',
+    },
+    '.cm-content': {
+      caretColor: '#60a5fa',
+    },
+    '.cm-gutters': {
+      backgroundColor: '#111827',
+      color: '#64748b',
+      borderRight: '1px solid #1e293b',
+    },
+    '.cm-activeLine': {
+      backgroundColor: '#111b2f',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: '#1e293b',
+    },
+    '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
+      backgroundColor: '#1d4ed8',
+    },
+    '.cm-cursor, .cm-dropCursor': {
+      borderLeftColor: '#60a5fa',
+    },
+    '.cm-matchingBracket': {
+      backgroundColor: '#1e3a5f',
+      outline: '1px solid #3b82f6',
+    },
+    '.cm-foldPlaceholder': {
+      background: '#1e293b',
+      color: '#94a3b8',
+    },
   },
-  '.cm-content': {
-    caretColor: '#60a5fa',
-  },
-  '.cm-gutters': {
-    backgroundColor: '#111827',
-    color: '#64748b',
-    border: 'none',
-    borderRight: '1px solid #1e293b',
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#111b2f',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#1e293b',
-  },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
-    backgroundColor: '#1d4ed8',
-  },
-  '.cm-cursor, .cm-dropCursor': {
-    borderLeftColor: '#60a5fa',
-  },
-  '.cm-matchingBracket': {
-    backgroundColor: '#1e3a5f',
-    outline: '1px solid #3b82f6',
-  },
-  '.cm-foldPlaceholder': {
-    background: '#1e293b',
-    border: 'none',
-    color: '#94a3b8',
-  },
-}, { dark: true });
+  { dark: true }
+);
 
 export interface JsonCodeEditorHandle {
   focus: () => void;
@@ -132,7 +146,7 @@ interface JsonCodeEditorProps {
   readOnly?: boolean;
   isDark?: boolean;
   placeholder?: string;
-  minHeight?: string;
+  className?: string;
 }
 
 export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorProps>(
@@ -144,11 +158,12 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
       readOnly = false,
       isDark = false,
       placeholder,
-      minHeight = '100%',
+      className = '',
     },
     ref
   ) {
     const cmRef = useRef<ReactCodeMirrorRef>(null);
+    const highlight = value.length <= HIGHLIGHT_CHAR_LIMIT;
 
     useImperativeHandle(ref, () => ({
       focus: () => cmRef.current?.view?.focus(),
@@ -166,22 +181,27 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
         },
       });
       return [
-        json(),
+        ...(highlight ? [json()] : []),
         EditorView.lineWrapping,
+        fillTheme,
         syntaxHighlighting(isDark ? darkHighlight : lightHighlight),
         pasteHandler,
+        EditorView.contentAttributes.of({
+          'aria-label': readOnly ? 'JSON output' : 'JSON input',
+        }),
       ];
-    }, [isDark, onPasteText]);
+    }, [highlight, isDark, onPasteText, readOnly]);
 
     return (
       <div
-        className="h-full min-h-[220px] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm bg-white dark:bg-gray-950"
-        style={{ minHeight }}
+        className={`json-code-editor flex-1 min-h-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950 ${className}`}
       >
         <CodeMirror
           ref={cmRef}
           value={value}
-          height={minHeight === '100%' ? '100%' : minHeight}
+          height="100%"
+          minHeight="100%"
+          maxHeight="100%"
           basicSetup={{
             lineNumbers: true,
             foldGutter: true,
@@ -192,6 +212,7 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
             closeBrackets: !readOnly,
             defaultKeymap: true,
             indentOnInput: true,
+            searchKeymap: true,
           }}
           extensions={extensions}
           editable={!readOnly}

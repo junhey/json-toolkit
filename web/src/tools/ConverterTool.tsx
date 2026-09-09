@@ -5,9 +5,11 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { useClipboard, downloadText } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 export function ConverterTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +19,6 @@ export function ConverterTool() {
   const [stats, setStats] = useState<{ fields?: number; records?: number; parsedLines?: number; outputLines?: number; size: number }>({ size: 0 });
   const { copied, copy } = useClipboard();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const process = useCallback(async (overrideInput?: string) => {
     const text = overrideInput ?? input;
@@ -121,9 +121,8 @@ export function ConverterTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Options bar */}
-      <div className="flex items-center gap-4 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+    <div className="tool-page">
+      <div className="tool-toolbar">
         {/* Direction toggle */}
         <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden p-0.5">
           <button
@@ -190,10 +189,9 @@ export function ConverterTool() {
       </div>
 
       {/* Input/Output panels */}
-      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
-        {/* Input panel */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+      <div className="tool-split">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
               {direction === 'json2csv' ? <FileJson className="w-3 h-3" /> : <FileSpreadsheet className="w-3 h-3" />}
               {t(lang, 'input')}
@@ -210,8 +208,8 @@ export function ConverterTool() {
         </div>
 
         {/* Output panel */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
               {direction === 'json2csv' ? <FileSpreadsheet className="w-3 h-3" /> : <FileJson className="w-3 h-3" />}
               {t(lang, 'output')}
@@ -235,7 +233,7 @@ export function ConverterTool() {
           </div>
 
           {error ? (
-            <div className="flex-1 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>{error}</div>
             </div>
@@ -247,7 +245,7 @@ export function ConverterTool() {
               placeholder={outputPlaceholder}
             />
           ) : (
-            <pre className="flex-1 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 code-font overflow-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed shadow-sm">
+            <pre className="flex-1 min-h-0 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 code-font overflow-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed shadow-sm">
               {output || <span className="text-gray-400">{outputPlaceholder}</span>}
             </pre>
           )}
@@ -255,7 +253,7 @@ export function ConverterTool() {
       </div>
 
       {/* Keyboard shortcut hint */}
-      <div className="text-xs text-gray-400 text-center pb-1">
+      <div className="text-xs text-gray-400 text-center pb-0.5 flex-shrink-0">
         <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-[11px]">Ctrl</kbd>
         {' + '}
         <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 font-mono text-[11px]">Enter</kbd>

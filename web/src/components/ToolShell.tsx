@@ -3,6 +3,7 @@ import { Copy, Check, Download, Trash2, Zap } from 'lucide-react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { JsonCodeEditor } from './JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 export function useClipboard() {
   const [copied, setCopied] = useState(false);
@@ -72,29 +73,23 @@ export function ToolShell({
   inputPlaceholder,
   outputPlaceholder,
 }: ToolShellProps) {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
   const { copied, copy } = useClipboard();
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDark = useIsDark();
 
   const inputLines = input ? input.split('\n').length : 0;
   const outputLines = output ? output.split('\n').length : 0;
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Options bar */}
+    <div className="tool-page">
       {options && (
-        <div className="flex items-center gap-3 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="tool-toolbar">
           {options}
         </div>
       )}
 
       {/* Action bar */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={onProcess}
           className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
@@ -133,10 +128,9 @@ export function ToolShell({
       </div>
 
       {/* Input/Output panels */}
-      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
-        {/* Input */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+      <div className="tool-split">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{inputLabel || t(lang, 'input')}</label>
             <span className="text-xs text-gray-400">{inputLines} lines</span>
           </div>
@@ -151,25 +145,24 @@ export function ToolShell({
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+              className="flex-1 min-h-0 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500"
               spellCheck={false}
               placeholder={inputPlaceholder || 'Input...'}
             />
           )}
         </div>
 
-        {/* Output */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{outputLabel || t(lang, 'output')}</label>
             <span className="text-xs text-gray-400">{outputLines} lines</span>
           </div>
           {error ? (
-            <div className="flex-1 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto">
+            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto">
               {error}
             </div>
           ) : outputNode ? (
-            <div className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto shadow-sm">
+            <div className="flex-1 min-h-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto shadow-sm">
               {outputNode}
             </div>
           ) : outputSyntax === 'json' ? (
@@ -183,7 +176,7 @@ export function ToolShell({
             <textarea
               value={output}
               readOnly
-              className="flex-1 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 code-font resize-none focus:outline-none"
+              className="flex-1 min-h-0 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 code-font resize-none overflow-auto focus:outline-none"
               placeholder={outputPlaceholder || 'Output will appear here...'}
             />
           )}

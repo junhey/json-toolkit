@@ -76,6 +76,27 @@ function App() {
     }
   }, [theme]);
 
+  useEffect(() => {
+    const meta = tools.find((item) => item.id === activeTool);
+    document.title = meta
+      ? `${getToolName(meta, lang)} · JSON Toolkit`
+      : 'JSON Toolkit';
+  }, [activeTool, lang]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      e.preventDefault();
+      document.getElementById('tool-search')?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const filteredTools = searchQuery
     ? tools.filter((tool) => {
         const name = getToolName(tool, lang).toLowerCase();
@@ -175,7 +196,7 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-sky-50/40 to-cyan-50/20 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 text-gray-900 dark:text-gray-100">
+    <div className="flex h-full bg-gradient-to-br from-slate-50 via-sky-50/40 to-cyan-50/20 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 text-gray-900 dark:text-gray-100">
       {sidebarOpen && (
         <button
           type="button"
@@ -185,7 +206,7 @@ function App() {
         />
       )}
       <aside
-        className={`w-72 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col fixed md:static inset-y-0 left-0 z-40 transform transition-transform md:transform-none ${
+        className={`w-72 h-full min-h-0 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col fixed md:static inset-y-0 left-0 z-40 transform transition-transform md:transform-none ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -212,7 +233,8 @@ function App() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
-              type="text"
+              id="tool-search"
+              type="search"
               placeholder={t(lang, 'search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -221,7 +243,7 @@ function App() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 pb-2">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 pb-2">
           {!searchQuery && favorites.length > 0 && (
             <div className="mb-3">
               <div className="px-3 py-1.5 flex items-center justify-between">
@@ -296,10 +318,10 @@ function App() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-hidden min-w-0">
+      <main className="flex-1 overflow-hidden min-w-0 min-h-0">
         {ActiveComponent && activeToolMeta ? (
-          <div className="h-full flex flex-col">
-            <div className="px-4 sm:px-6 py-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90 backdrop-blur flex items-center gap-3">
+          <div className="h-full min-h-0 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 px-4 sm:px-6 py-3 border-b border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/90 backdrop-blur flex items-center gap-3">
               <button
                 type="button"
                 className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -353,7 +375,7 @@ function App() {
                 {lang === 'zh' ? '收藏' : 'Favorite'}
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-5 lg:p-6 fade-in">
+            <div className="flex-1 min-h-0 overflow-hidden p-3 sm:p-4 lg:p-5">
               <ActiveComponent />
             </div>
           </div>

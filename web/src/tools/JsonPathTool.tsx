@@ -5,6 +5,7 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { downloadText } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 const pathPresets = [
   { label: '$', desc: 'Root', path: '$' },
@@ -16,7 +17,8 @@ const pathPresets = [
 ];
 
 export function JsonPathTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,12 +28,6 @@ export function JsonPathTool() {
   const [matchCount, setMatchCount] = useState<number | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const copy = useCallback(async (text: string) => {
     try {
@@ -114,10 +110,9 @@ export function JsonPathTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* JSON Input */}
-      <div className="flex flex-col" style={{ height: '40%' }}>
-        <div className="flex items-center justify-between mb-1.5">
+    <div className="tool-page">
+      <div className="tool-pane flex-[1.15]">
+        <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
           <label className="text-xs font-medium text-gray-500">{t(lang, 'input')}</label>
           <span className="text-xs text-gray-400">
             {input ? `${input.split('\n').length} lines` : ''}
@@ -136,7 +131,7 @@ export function JsonPathTool() {
       </div>
 
       {/* Path Input & Presets */}
-      <div className="flex flex-col gap-2 px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="flex flex-col gap-2 px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
             {t(lang, 'path')}:
@@ -180,8 +175,8 @@ export function JsonPathTool() {
       </div>
 
       {/* Result Output */}
-      <div className="flex flex-col min-h-0" style={{ height: '40%' }}>
-        <div className="flex items-center justify-between mb-1.5">
+      <div className="tool-pane flex-1">
+        <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
           <label className="text-xs font-medium text-gray-500">{t(lang, 'result')}</label>
           <div className="flex items-center gap-3">
             {/* Stats badge */}
@@ -239,7 +234,7 @@ export function JsonPathTool() {
         </div>
 
         {error ? (
-          <div className="flex-1 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+          <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div>{error}</div>
           </div>
