@@ -4,20 +4,16 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { ShieldCheck, ShieldX, Zap } from 'lucide-react';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 export function ValidatorTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [input, setInput] = useState('');
   const [schema, setSchema] = useState('');
   const [errors, setErrors] = useState<string[] | null>(null);
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const process = async () => {
     if (!input.trim() || !schema.trim()) return;
@@ -34,8 +30,8 @@ export function ValidatorTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      <div className="flex items-center gap-2">
+    <div className="tool-page">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={process}
           className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -45,9 +41,9 @@ export function ValidatorTool() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1.5">{t(lang, 'input')} (JSON)</label>
+      <div className="tool-split">
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 flex-shrink-0">{t(lang, 'input')} (JSON)</label>
           <JsonCodeEditor
             value={input}
             onChange={setInput}
@@ -55,8 +51,8 @@ export function ValidatorTool() {
             placeholder="JSON to validate..."
           />
         </div>
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1.5">{t(lang, 'schema')} (JSON Schema)</label>
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 flex-shrink-0">{t(lang, 'schema')} (JSON Schema)</label>
           <JsonCodeEditor
             value={schema}
             onChange={setSchema}
@@ -66,7 +62,7 @@ export function ValidatorTool() {
         </div>
       </div>
 
-      <div className="min-h-0">
+      <div className="flex-shrink-0 max-h-40 overflow-auto">
         {error ? (
           <div className="p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm">
             {error}

@@ -10,16 +10,14 @@ if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
 
 export async function initAdapter() {
   if (isTauri) {
-    // Tauri environment - no need to load WASM
     return;
   }
-  // Web environment - load WASM module
   try {
     wasmModule = await import('../wasm/json_core.js');
     await wasmModule.default();
   } catch (e) {
-    console.error('Failed to load WASM module:', e);
-    throw e;
+    console.warn('WASM module unavailable, using JavaScript fallback for core tools:', e);
+    wasmModule = null;
   }
 }
 
@@ -27,11 +25,108 @@ export function getAdapter() {
   if (isTauri) {
     return tauriAdapter;
   }
-  if (!wasmModule) {
-    throw new Error('WASM module not initialized. Call initAdapter() first.');
+  if (wasmModule) {
+    return createWasmAdapter(wasmModule);
   }
-  return createWasmAdapter(wasmModule);
+  return jsFallbackAdapter;
 }
+
+function sortValue(value: unknown, by: string, order: string): unknown {
+  const dir = order === 'desc' ? -1 : 1;
+  if (Array.isArray(value)) {
+    const mapped = value.map((item) => sortValue(item, by, order));
+    if (by === 'value') {
+      return mapped.sort((a, b) => dir * String(a).localeCompare(String(b)));
+    }
+    return mapped;
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+      k,
+      sortValue(v, by, order),
+    ]) as [string, unknown][];
+    entries.sort((a, b) => {
+      const key = by === 'value' ? String(a[1]).localeCompare(String(b[1])) : a[0].localeCompare(b[0]);
+      return dir * key;
+    });
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
+function stringifyPretty(value: unknown, indent: number) {
+  return JSON.stringify(value, null, indent || 2);
+}
+
+const WASM_REQUIRED = 'This action needs the WASM engine. Rebuild with `pnpm wasm:build`. / 该功能需要 WASM，请执行 pnpm wasm:build';
+
+const jsFallbackAdapter = {
+  async format(input: string, indent: number, sortKeys: boolean): Promise<string> {
+    const parsed = JSON.parse(input);
+    return stringifyPretty(sortKeys ? sortValue(parsed, 'key', 'asc') : parsed, indent);
+  },
+  async minify(input: string): Promise<string> {
+    return JSON.stringify(JSON.parse(input));
+  },
+  async sort(input: string, by: string, order: string): Promise<string> {
+    return stringifyPretty(sortValue(JSON.parse(input), by, order), 2);
+  },
+  async decode(input: string, encoding: string): Promise<string> {
+    if (encoding === 'url') return decodeURIComponent(input.replace(/\+/g, ' '));
+    if (encoding === 'base64') return new TextDecoder().decode(Uint8Array.from(atob(input), (c) => c.charCodeAt(0)));
+    if (encoding === 'unicode') {
+      return input.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+    throw new Error(WASM_REQUIRED);
+  },
+  async encode(input: string, encoding: string): Promise<string> {
+    if (encoding === 'url') return encodeURIComponent(input);
+    if (encoding === 'base64') {
+      const bytes = new TextEncoder().encode(input);
+      let bin = '';
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin);
+    }
+    if (encoding === 'unicode') {
+      return Array.from(input)
+        .map((ch) => {
+          const code = ch.charCodeAt(0);
+          return code > 127 ? `\\u${code.toString(16).padStart(4, '0')}` : ch;
+        })
+        .join('');
+    }
+    throw new Error(WASM_REQUIRED);
+  },
+  async jsonpath(_input: string, _path: string): Promise<string> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async buildTree(_input: string, _maxDepth: number): Promise<any> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async jsonToTable(_input: string): Promise<any> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async diff(_left: string, _right: string): Promise<any[]> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async jsonToCsv(_input: string, _delim: string): Promise<string> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async csvToJson(_input: string, _delim: string): Promise<string> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async validateSchema(_input: string, _schema: string): Promise<string[]> {
+    throw new Error(WASM_REQUIRED);
+  },
+  async generateMock(
+    _template: string,
+    _arraySize: number,
+    _maxDepth: number,
+    _seed: number | null
+  ): Promise<string> {
+    throw new Error(WASM_REQUIRED);
+  },
+};
 
 // WASM adapter
 function createWasmAdapter(wasm: any) {
@@ -141,4 +236,4 @@ const tauriAdapter = {
   },
 };
 
-export type JsonToolApi = ReturnType<typeof createWasmAdapter>;
+export type JsonToolApi = ReturnType<typeof createWasmAdapter> | typeof jsFallbackAdapter;

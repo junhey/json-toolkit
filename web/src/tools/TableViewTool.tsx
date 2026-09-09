@@ -15,6 +15,7 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { useClipboard, downloadText } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 interface TableData {
   headers: string[];
@@ -23,19 +24,14 @@ interface TableData {
 }
 
 export function TableViewTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [input, setInput] = useState('');
   const [table, setTable] = useState<TableData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [autoConvert, setAutoConvert] = useState(true);
   const { copied, copy } = useClipboard();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const process = useCallback(async () => {
     if (!input.trim()) {
@@ -102,9 +98,8 @@ export function TableViewTool() {
   const cellCount = colCount * rowCount;
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Options bar */}
-      <div className="flex items-center gap-4 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+    <div className="tool-page">
+      <div className="tool-toolbar">
         <button
           onClick={process}
           disabled={!input.trim()}
@@ -168,10 +163,9 @@ export function TableViewTool() {
       </div>
 
       {/* Input/Output panels */}
-      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
-        {/* Input */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+      <div className="tool-split">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'input')}</label>
             <span className="text-xs text-gray-400">
               {input ? `${input.split('\n').length} lines` : ''}
@@ -190,8 +184,8 @@ export function TableViewTool() {
         </div>
 
         {/* Output - Table View */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500 flex items-center gap-1">
               <Table2 className="w-3.5 h-3.5" />
               {t(lang, 'result')}
@@ -202,12 +196,12 @@ export function TableViewTool() {
           </div>
 
           {error ? (
-            <div className="flex-1 p-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 min-h-0 p-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>{error}</div>
             </div>
           ) : table && table.rows.length > 0 ? (
-            <div className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-auto shadow-sm">
+            <div className="flex-1 min-h-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 overflow-auto shadow-sm">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gray-50 dark:bg-gray-800/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
@@ -248,12 +242,12 @@ export function TableViewTool() {
               </table>
             </div>
           ) : input.trim() ? (
-            <div className="flex-1 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500 text-sm">
+            <div className="flex-1 min-h-0 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500 text-sm">
               <Table2 className="w-5 h-5 opacity-50" />
               {lang === 'zh' ? '点击「处理」按钮转换表格' : "Click 'Process' to convert to table"}
             </div>
           ) : (
-            <div className="flex-1 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-950/30 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-600 text-sm">
+            <div className="flex-1 min-h-0 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-950/30 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-600 text-sm">
               <LayoutGrid className="w-5 h-5 opacity-40" />
               {t(lang, 'noData')}
             </div>

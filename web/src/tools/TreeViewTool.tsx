@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Pencil, Check, X, Plus, Trash2, Copy } from 'lucide-react';
+import { ChevronRight, ChevronDown, Pencil, Check, X, Plus, Trash2, Copy, Download } from 'lucide-react';
 import { useStore } from '../store';
 import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { useClipboard, downloadText } from '../components/ToolShell';
+import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 import type { TreeNode } from '../lib/types';
 
 const typeColors: Record<string, string> = {
@@ -110,6 +112,7 @@ function TreeItem({ node, depth, onEdit, onAddChild, onDelete }: {
 
 export function TreeViewTool() {
   const { lang } = useStore();
+  const isDark = useIsDark();
   const [input, setInput] = useState('');
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -231,9 +234,8 @@ export function TreeViewTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Action bar */}
-      <div className="flex items-center gap-2">
+    <div className="tool-page">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={process}
           className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -253,32 +255,31 @@ export function TreeViewTool() {
               {copied ? t(lang, 'copied') : t(lang, 'copy')}
             </button>
             <button onClick={() => downloadText('edited.json', output)} className="text-xs flex items-center gap-1 text-gray-500 hover:text-blue-500">
-              <Copy className="w-3 h-3" />
+              <Download className="w-3 h-3" />
               {t(lang, 'download')}
             </button>
           </>
         )}
       </div>
 
-      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1">{t(lang, 'input')}</label>
-          <textarea
+      <div className="tool-split">
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1 flex-shrink-0">{t(lang, 'input')}</label>
+          <JsonCodeEditor
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="flex-1 w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            spellCheck={false}
+            onChange={setInput}
+            isDark={isDark}
             placeholder="Paste JSON here..."
           />
         </div>
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1">{t(lang, 'result')}</label>
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1 flex-shrink-0">{t(lang, 'result')}</label>
           {error ? (
-            <div className="flex-1 p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm overflow-auto">
+            <div className="flex-1 min-h-0 p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm overflow-auto">
               {error}
             </div>
           ) : tree ? (
-            <div className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto p-3">
+            <div className="flex-1 min-h-0 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto p-3">
               <TreeItem
                 node={tree}
                 depth={0}
@@ -288,7 +289,7 @@ export function TreeViewTool() {
               />
             </div>
           ) : (
-            <div className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+            <div className="flex-1 min-h-0 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
               {t(lang, 'noData')}
             </div>
           )}

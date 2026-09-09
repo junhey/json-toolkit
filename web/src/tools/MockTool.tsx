@@ -5,6 +5,7 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { useClipboard, downloadText } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 
 const defaultTemplate = `{
   "id": "@uuid",
@@ -124,7 +125,8 @@ function analyzeJson(jsonStr: string): { fields: number; maxDepth: number } {
 }
 
 export function MockTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [template, setTemplate] = useState(defaultTemplate);
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -134,8 +136,7 @@ export function MockTool() {
   const [genStats, setGenStats] = useState<{ fields: number; depth: number; size: string; time: number } | null>(null);
   const { copied, copy } = useClipboard();
   const genTimeRef = useRef<number>(0);
-
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [hintsOpen, setHintsOpen] = useState(false);
 
   const insertHint = useCallback((hint: string) => {
     setTemplate((prev) => prev + (prev.endsWith('\n') ? '' : '\n') + `  "${hint.replace('@', '')}": "${hint}"`);
@@ -161,13 +162,17 @@ export function MockTool() {
 
       setOutput(result);
 
-      // Calculate stats
       const { fields, maxDepth: depth } = analyzeJson(result);
-      const sizeKB = new Blob([result]).size;
+      const bytes = new Blob([result]).size;
       setGenStats({
         fields,
         depth,
-        size: sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(2)}MB` : `${sizeKB.toFixed(1)}KB`,
+        size:
+          bytes >= 1024 * 1024
+            ? `${(bytes / 1024 / 1024).toFixed(2)}MB`
+            : bytes >= 1024
+              ? `${(bytes / 1024).toFixed(1)}KB`
+              : `${bytes}B`,
         time: Math.round(endTime - startTime),
       });
     } catch (e: any) {
@@ -194,9 +199,8 @@ export function MockTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Options bar - product design */}
-      <div className="flex items-center gap-4 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+    <div className="tool-page">
+      <div className="tool-toolbar">
         <label className="text-sm flex items-center gap-2">
           <Database className="w-4 h-4 text-blue-500" />
           <span className="text-gray-500">{t(lang, 'arraySize')}:</span>
@@ -257,7 +261,7 @@ export function MockTool() {
       </div>
 
       {/* Template Presets */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
         <Sparkles className="w-4 h-4 text-purple-500" />
         <span className="text-xs text-gray-500 mr-1">{lang === 'zh' ? '模板预设：' : 'Presets:'}</span>
         {presets.map((preset) => (
@@ -272,36 +276,44 @@ export function MockTool() {
       </div>
 
       {/* Enhanced Hint System - Category Groups */}
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-200 dark:border-gray-700/50">
-        <div className="space-y-2.5">
-          {hintCategories.map((category) => (
-            <div key={category.label}>
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-gray-500 mr-2">
-                {category.label}
-              </span>
-              <div className="inline-flex flex-wrap gap-1 ml-1">
-                {category.hints.map((h) => (
-                  <button
-                    key={h.hint}
-                    onClick={() => insertHint(h.hint)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors border border-blue-100 dark:border-blue-800/50"
-                    title={`${h.hint} - ${h.desc}`}
-                  >
-                    <span>{h.icon}</span>
-                    <span>{h.hint}</span>
-                  </button>
-                ))}
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 flex-shrink-0 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setHintsOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800/80"
+        >
+          <span>{lang === 'zh' ? '占位符提示' : 'Placeholder hints'}</span>
+          <span>{hintsOpen ? '▲' : '▼'}</span>
+        </button>
+        {hintsOpen && (
+          <div className="p-3 pt-0 space-y-2.5 max-h-40 overflow-y-auto">
+            {hintCategories.map((category) => (
+              <div key={category.label}>
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 dark:text-gray-500 mr-2">
+                  {category.label}
+                </span>
+                <div className="inline-flex flex-wrap gap-1 ml-1">
+                  {category.hints.map((h) => (
+                    <button
+                      key={h.hint}
+                      onClick={() => insertHint(h.hint)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors border border-blue-100 dark:border-blue-800/50"
+                      title={`${h.hint} - ${h.desc}`}
+                    >
+                      <span>{h.icon}</span>
+                      <span>{h.hint}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Input/Output panels */}
-      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
-        {/* Template Input */}
-        <div className="flex flex-col min-h-0">
-          <label className="text-xs font-medium text-gray-500 mb-1.5">{t(lang, 'template')}</label>
+      <div className="tool-split">
+        <div className="tool-pane">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 flex-shrink-0">{t(lang, 'template')}</label>
           <JsonCodeEditor
             value={template}
             onChange={setTemplate}
@@ -311,8 +323,8 @@ export function MockTool() {
         </div>
 
         {/* Output Panel */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'output')}</label>
 
             {/* Output Stats Panel */}
@@ -358,7 +370,7 @@ export function MockTool() {
           </div>
 
           {error ? (
-            <div className="flex-1 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>{error}</div>
             </div>

@@ -5,6 +5,7 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { downloadText } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { useIsDark } from '../lib/useIsDark';
 import {
   ENCODE_METHODS,
   DECODE_METHODS,
@@ -17,7 +18,8 @@ import {
 type Mode = 'encode' | 'decode';
 
 export function DecoderTool() {
-  const { lang, theme } = useStore();
+  const { lang } = useStore();
+  const isDark = useIsDark();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,18 +29,12 @@ export function DecoderTool() {
   const [copied, setCopied] = useState(false);
   const [detected, setDetected] = useState<string | null>(null);
   const [processTime, setProcessTime] = useState(0);
-  const [pickerOpen, setPickerOpen] = useState(true);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const methods = mode === 'encode' ? ENCODE_METHODS : DECODE_METHODS;
   const activeMethod: CodecMethod =
     methods.find((m) => m.id === methodId) || methods[0];
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const copy = useCallback(async (text: string) => {
     try {
@@ -139,9 +135,8 @@ export function DecoderTool() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Conversion method picker */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+    <div className="tool-page">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex-shrink-0">
         <button
           type="button"
           onClick={() => setPickerOpen((v) => !v)}
@@ -162,7 +157,7 @@ export function DecoderTool() {
         </button>
 
         {pickerOpen && (
-          <div className="px-4 pb-4 space-y-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="px-4 pb-4 space-y-4 border-t border-gray-100 dark:border-gray-800 max-h-56 overflow-y-auto">
             <div className="pt-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -195,7 +190,7 @@ export function DecoderTool() {
       </div>
 
       {/* Options bar */}
-      <div className="flex items-center gap-4 flex-wrap px-4 py-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="tool-toolbar">
         <div className="text-sm text-gray-600 dark:text-gray-300">
           <span className="text-gray-400 mr-1">{lang === 'zh' ? '当前' : 'Current'}:</span>
           <span className="font-medium text-blue-600 dark:text-blue-400">
@@ -256,16 +251,16 @@ export function DecoderTool() {
         </div>
       )}
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+      <div className="tool-split">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'input')}</label>
             <span className="text-xs text-gray-400">{inputSize} bytes</span>
           </div>
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 w-full min-h-[220px] p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+            className="flex-1 min-h-0 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 code-font resize-none overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500"
             spellCheck={false}
             placeholder={
               mode === 'decode'
@@ -279,8 +274,8 @@ export function DecoderTool() {
           />
         </div>
 
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="tool-pane">
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
             <label className="text-xs font-medium text-gray-500">{t(lang, 'output')}</label>
             {output && (
               <div className="flex items-center gap-3">
@@ -303,7 +298,7 @@ export function DecoderTool() {
           </div>
 
           {error ? (
-            <div className="flex-1 min-h-[220px] p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
+            <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>{error}</div>
             </div>
@@ -318,7 +313,7 @@ export function DecoderTool() {
             <textarea
               value={output}
               readOnly
-              className="flex-1 w-full min-h-[220px] p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 code-font resize-none focus:outline-none"
+              className="flex-1 min-h-0 w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 code-font resize-none overflow-auto focus:outline-none"
               placeholder={lang === 'zh' ? '结果将显示在这里...' : 'Output will appear here...'}
             />
           )}
