@@ -138,6 +138,57 @@ button, a, input, select, textarea {
   overscroll-behavior: contain;
 }
 
+.json-node-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  vertical-align: middle;
+  opacity: 0.18;
+  user-select: none;
+}
+
+.cm-line:hover .json-node-actions,
+.cm-activeLine .json-node-actions {
+  opacity: 1;
+}
+
+.json-node-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.json-node-btn:hover {
+  background: #e2e8f0;
+  color: #2563eb;
+}
+
+.dark .json-node-btn:hover {
+  background: #1e293b;
+  color: #93c5fd;
+}
+
+.json-node-btn-add:hover {
+  color: #16a34a;
+}
+
+.json-node-btn-del:hover {
+  color: #dc2626;
+}
+
+.json-code-editor .cm-foldGutter span {
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fade-in,
   button, a, input, select, textarea {

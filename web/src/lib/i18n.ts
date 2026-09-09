@@ -24,7 +24,7 @@ const translations = {
     shortcutHint: 'Ctrl + Enter 格式化',
     // Tools
     formatter: 'JSON 格式化',
-    formatterDesc: '美化和格式化 JSON 字符串',
+    formatterDesc: '专业 JSON 编辑器：美化、折叠、节点编辑',
     minifier: 'JSON 压缩',
     minifierDesc: '压缩 JSON 移除空白字符',
     sorter: 'JSON 排序',
@@ -112,7 +112,7 @@ const translations = {
     loadSample: 'Load sample',
     shortcutHint: 'Ctrl + Enter to format',
     formatter: 'JSON Formatter',
-    formatterDesc: 'Beautify and format JSON',
+    formatterDesc: 'Professional JSON editor with fold and node actions',
     minifier: 'JSON Minifier',
     minifierDesc: 'Compress JSON remove whitespace',
     sorter: 'JSON Sorter',
