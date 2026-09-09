@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { createRequire } from 'node:module';
 
@@ -45,4 +45,8 @@ export default defineConfig({
     },
   },
   base: process.env.GITHUB_PAGES === 'true' ? '/json-toolkit/' : '/',
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
 });

@@ -114,6 +114,48 @@ export function addChild(
   return root;
 }
 
+export function duplicateAt(root: JsonValue, segs: JsonSeg[]): JsonValue {
+  if (segs.length === 0) return root;
+  const next = clone(root);
+  const parentSegs = segs.slice(0, -1);
+  const last = segs[segs.length - 1];
+  const parent = parentSegs.length ? getAt(next, parentSegs) : next;
+  const value = clone(getAt(next, segs));
+  if (Array.isArray(parent) && typeof last === 'number') {
+    parent.splice(last + 1, 0, value);
+    return next;
+  }
+  if (parent && typeof parent === 'object' && parent !== null) {
+    const rec = parent as Record<string, JsonValue>;
+    rec[uniqueKey(rec, String(last))] = value;
+    return next;
+  }
+  return root;
+}
+
+export function isContainer(value: JsonValue): boolean {
+  return value !== null && typeof value === 'object';
+}
+
+/** Minified or poorly wrapped JSON that should be pretty-printed in the editor. */
+export function shouldAutoBeautify(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 2) return false;
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return false;
+  try {
+    JSON.parse(trimmed);
+  } catch {
+    return false;
+  }
+  const firstNl = trimmed.indexOf('\n');
+  if (firstNl === -1 || trimmed.indexOf('\n', firstNl + 1) === -1) return true;
+  const lines = trimmed.split('\n');
+  for (const line of lines) {
+    if (line.length > 4000) return true;
+  }
+  return false;
+}
+
 export function defaultValueForType(type: string): JsonValue {
   switch (type) {
     case 'string':

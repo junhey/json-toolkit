@@ -2,7 +2,7 @@ import { EditorView, Decoration, WidgetType, ViewPlugin, type ViewUpdate, type D
 import { Facet } from '@codemirror/state';
 import { visibleNodeActions } from '../lib/jsonPathFromTree';
 
-export type JsonEditorAction = 'copy-path' | 'copy-value' | 'add-child' | 'delete';
+export type JsonEditorAction = 'copy-path' | 'copy-value' | 'add-child' | 'delete' | 'duplicate';
 
 export interface JsonEditorHooks {
   enabled: boolean;
@@ -20,6 +20,7 @@ function iconButton(svg: string, title: string, className: string, handler: (e: 
   btn.type = 'button';
   btn.className = `json-node-btn ${className}`;
   btn.title = title;
+  btn.setAttribute('aria-label', title);
   btn.innerHTML = svg;
   btn.addEventListener('mousedown', (e) => {
     e.preventDefault();
@@ -38,15 +39,18 @@ const COPY_PATH =
 const COPY =
   '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const PLUS =
-  '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>';
+  '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>';
 const TRASH =
   '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>';
+const DUPLICATE =
+  '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>';
 
 class NodeActionWidget extends WidgetType {
   constructor(
     readonly path: string,
     readonly canAdd: boolean,
     readonly canDelete: boolean,
+    readonly canDuplicate: boolean,
     readonly readOnly: boolean,
     readonly lang: 'zh' | 'en',
     readonly onAction: JsonEditorHooks['onAction']
@@ -59,6 +63,7 @@ class NodeActionWidget extends WidgetType {
       this.path === other.path &&
       this.canAdd === other.canAdd &&
       this.canDelete === other.canDelete &&
+      this.canDuplicate === other.canDuplicate &&
       this.readOnly === other.readOnly &&
       this.lang === other.lang
     );
@@ -69,26 +74,45 @@ class NodeActionWidget extends WidgetType {
     wrap.className = 'json-node-actions';
     wrap.contentEditable = 'false';
     const zh = this.lang === 'zh';
-    wrap.appendChild(
-      iconButton(COPY_PATH, zh ? '复制节点路径' : 'Copy path', '', () => this.onAction('copy-path', this.path))
-    );
-    wrap.appendChild(
-      iconButton(COPY, zh ? '复制节点内容' : 'Copy value', '', () => this.onAction('copy-value', this.path))
-    );
+
+    const persist = document.createElement('span');
+    persist.className = 'json-node-actions-persist';
     if (!this.readOnly && this.canAdd) {
-      wrap.appendChild(
+      persist.appendChild(
         iconButton(PLUS, zh ? '添加子节点' : 'Add child', 'json-node-btn-add', () =>
           this.onAction('add-child', this.path)
         )
       );
     }
     if (!this.readOnly && this.canDelete) {
-      wrap.appendChild(
+      persist.appendChild(
         iconButton(TRASH, zh ? '删除节点' : 'Delete node', 'json-node-btn-del', () =>
           this.onAction('delete', this.path)
         )
       );
     }
+    wrap.appendChild(persist);
+
+    const hover = document.createElement('span');
+    hover.className = 'json-node-actions-hover';
+    hover.appendChild(
+      iconButton(COPY, zh ? '复制节点内容' : 'Copy value', 'json-node-btn-copy', () =>
+        this.onAction('copy-value', this.path)
+      )
+    );
+    hover.appendChild(
+      iconButton(COPY_PATH, zh ? '复制节点路径' : 'Copy path', 'json-node-btn-copy', () =>
+        this.onAction('copy-path', this.path)
+      )
+    );
+    if (!this.readOnly && this.canDuplicate) {
+      hover.appendChild(
+        iconButton(DUPLICATE, zh ? '复制节点' : 'Duplicate node', 'json-node-btn-copy', () =>
+          this.onAction('duplicate', this.path)
+        )
+      );
+    }
+    wrap.appendChild(hover);
     return wrap;
   }
 
@@ -109,6 +133,7 @@ function buildDecos(view: EditorView): DecorationSet {
             item.path,
             item.canAdd,
             item.canDelete,
+            item.canDuplicate,
             hooks.readOnly,
             hooks.lang,
             hooks.onAction
@@ -128,7 +153,7 @@ export const jsonNodeActionPlugin = ViewPlugin.fromClass(
       this.decorations = buildDecos(view);
     }
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || update.transactions.length) {
+      if (update.docChanged || update.viewportChanged) {
         this.decorations = buildDecos(update.view);
       }
     }

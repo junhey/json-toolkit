@@ -63,6 +63,7 @@ export interface VisibleNodeAction {
   path: string;
   canAdd: boolean;
   canDelete: boolean;
+  canDuplicate: boolean;
 }
 
 export function visibleNodeActions(state: EditorState, from: number, to: number): VisibleNodeAction[] {
@@ -74,6 +75,7 @@ export function visibleNodeActions(state: EditorState, from: number, to: number)
       const prev = byLine.get(line.to)!;
       prev.canAdd = prev.canAdd || canAdd;
       prev.canDelete = prev.canDelete || canDelete;
+      prev.canDuplicate = prev.canDuplicate || canDelete;
       return;
     }
     byLine.set(line.to, {
@@ -81,6 +83,7 @@ export function visibleNodeActions(state: EditorState, from: number, to: number)
       path: jsonPathAt(state, Math.min(pos + 1, state.doc.length)),
       canAdd,
       canDelete,
+      canDuplicate: canDelete,
     });
   };
 
@@ -99,6 +102,8 @@ export function visibleNodeActions(state: EditorState, from: number, to: number)
         } else if (parent.name === 'Array') {
           consider(node.from, true, true);
         }
+      } else if (VALUE_NODES.has(node.name) && node.node.parent?.name === 'Array') {
+        consider(node.from, false, true);
       }
     },
   });

@@ -18,38 +18,26 @@ import { getAdapter } from '../lib/adapter';
 import { downloadText, useClipboard } from '../components/ToolShell';
 import { JsonCodeEditor, type JsonCodeEditorHandle } from '../components/JsonCodeEditor';
 import { useIsDark } from '../lib/useIsDark';
+import { shouldAutoBeautify } from '../lib/jsonDoc';
 
 const SAMPLE_JSON = `{
   "name": "JSON Toolkit",
   "born": "2024",
-  "message": "A powerful JSON editor for everyday work",
+  "message": "面向日常使用的专业 JSON 编辑器",
   "enabled": true,
   "owner": null,
   "philosophy": {
-    "belief": "Format first, then edit",
-    "promise": "Keep large documents scrollable and highlighted",
-    "wish": "Fold, copy path, and mutate nodes in place"
+    "belief": "先格式化，再编辑",
+    "promise": "大文档可滚动、可高亮、可折叠",
+    "wish": "复制路径、增删节点，就地完成"
   },
   "milestones": [
-    { "year": 2024, "event": "First release" },
-    { "year": 2025, "event": "Multi-platform toolkit" },
-    { "year": 2026, "event": "In-place JSON editor" }
+    { "year": 2024, "event": "首次发布" },
+    { "year": 2025, "event": "多端工具箱" },
+    { "year": 2026, "event": "就地 JSON 编辑器" }
   ],
   "features": ["format", "fold", "copy path", "add child", "delete node"]
 }`;
-
-function looksMinifiedJson(text: string): boolean {
-  const trimmed = text.trim();
-  if (trimmed.length < 24) return false;
-  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return false;
-  if (trimmed.split('\n').length > 2) return false;
-  try {
-    JSON.parse(trimmed);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function tryParseNestedJsonStrings(value: unknown): unknown {
   if (typeof value === 'string') {
@@ -229,7 +217,7 @@ export function FormatterTool() {
 
   useEffect(() => {
     if (!pasteAutoFormat || keepMinified.current) return;
-    if (!looksMinifiedJson(doc)) return;
+    if (!shouldAutoBeautify(doc)) return;
     let cancelled = false;
     (async () => {
       const result = await beautify(doc, { fromPaste: true });
@@ -479,8 +467,8 @@ export function FormatterTool() {
         indent={indent}
         placeholder={
           lang === 'zh'
-            ? '粘贴 JSON，将自动美化并高亮。悬停行末可复制路径、添加或删除节点。'
-            : 'Paste JSON to beautify. Hover a line to copy path, add or delete nodes.'
+            ? '粘贴 JSON 将自动美化。行号可折叠；悬停行末可复制路径、复制内容、添加或删除节点。'
+            : 'Paste JSON to beautify. Fold from the gutter; hover a line to copy path, add or delete nodes.'
         }
       />
     </div>

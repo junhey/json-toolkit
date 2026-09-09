@@ -11,7 +11,9 @@ import {
   addChild,
   defaultValueForType,
   deleteAt,
+  duplicateAt,
   getAt,
+  isContainer,
   parseJsonPath,
   stringifyJson,
   tryParseJson,
@@ -20,7 +22,7 @@ import { jsonPathAt } from '../lib/jsonPathFromTree';
 import { useStore } from '../store';
 import { useClipboard } from './ToolShell';
 
-const HIGHLIGHT_CHAR_LIMIT = 1_500_000;
+const HIGHLIGHT_CHAR_LIMIT = 8_000_000;
 
 const lightHighlight = HighlightStyle.define([
   { tag: t.propertyName, color: '#0550ae', fontWeight: '600' },
@@ -61,13 +63,21 @@ const fillTheme = EditorView.theme({
   },
   '.cm-content': {
     minHeight: '100%',
-    paddingRight: '7rem',
+    paddingRight: '8.5rem',
   },
   '.cm-gutters': {
     border: 'none',
   },
   '.cm-foldGutter': {
-    width: '16px',
+    width: '18px',
+  },
+  '.cm-foldGutter .cm-gutterElement': {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#94a3b8',
+    fontSize: '11px',
+    lineHeight: 1,
   },
   '.cm-foldPlaceholder': {
     border: 'none',
@@ -179,6 +189,7 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
     const [addDialog, setAddDialog] = useState<{ path: string } | null>(null);
     const [addKey, setAddKey] = useState('newField');
     const [addType, setAddType] = useState('string');
+    const [addValue, setAddValue] = useState('');
     const actionRef = useRef<(action: JsonEditorAction, path: string) => void>(() => {});
 
     const highlight = value.length <= HIGHLIGHT_CHAR_LIMIT;
@@ -220,9 +231,20 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
           showToast(lang === 'zh' ? `已删除 ${path}` : `Deleted ${path}`);
           return;
         }
+        if (action === 'duplicate') {
+          rewrite(duplicateAt(parsed.value, segs));
+          showToast(lang === 'zh' ? `已复制节点 ${path}` : `Duplicated ${path}`);
+          return;
+        }
         if (action === 'add-child') {
+          const parent = getAt(parsed.value, segs);
+          if (!isContainer(parent)) {
+            showToast(lang === 'zh' ? '只能向对象或数组添加子节点' : 'Can only add children to objects or arrays');
+            return;
+          }
           setAddKey('newField');
           setAddType('string');
+          setAddValue('');
           setAddDialog({ path });
         }
       },
@@ -252,10 +274,17 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
       if (!addDialog || !parsed.ok) return;
       const segs = parseJsonPath(addDialog.path);
       const parent = getAt(parsed.value, segs);
+      let value: unknown = defaultValueForType(addType);
+      if (addType === 'string') value = addValue;
+      if (addType === 'number') {
+        const n = Number(addValue);
+        value = Number.isFinite(n) ? n : 0;
+      }
+      if (addType === 'boolean') value = addValue !== 'false';
       rewrite(
         addChild(parsed.value, segs, {
           key: Array.isArray(parent) ? undefined : addKey.trim() || 'newField',
-          value: defaultValueForType(addType),
+          value,
         })
       );
       setAddDialog(null);
@@ -291,8 +320,10 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
       return [
         ...(highlight ? [json()] : []),
         codeFolding({ placeholderText: '…' }),
-        foldGutter(),
-        EditorView.lineWrapping,
+        foldGutter({
+          openText: '▾',
+          closedText: '▸',
+        }),
         fillTheme,
         syntaxHighlighting(isDark ? darkHighlight : lightHighlight),
         Prec.high(pasteHandler),
@@ -354,17 +385,23 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
         </div>
 
         {powerEdit && (
-          <div className="flex-shrink-0 flex items-center gap-3 px-3 py-1.5 text-[11px] border-t border-gray-200 dark:border-gray-800 bg-gray-50/90 dark:bg-gray-900/80 text-gray-500">
+          <div className="flex-shrink-0 flex items-center gap-3 px-3 py-1.5 text-xs border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 text-gray-500">
             <span
-              className={`font-medium ${parsed.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}
+              className={`font-semibold ${parsed.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}
             >
               {parsed.ok ? (lang === 'zh' ? '有效 JSON' : 'Valid JSON') : lang === 'zh' ? '语法错误' : 'Invalid'}
             </span>
-            <span className="font-mono truncate" title={cursorPath}>
+            <span className="text-gray-400">{lang === 'zh' ? '路径' : 'Path'}</span>
+            <button
+              type="button"
+              className="font-mono truncate text-left text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400"
+              title={lang === 'zh' ? `点击复制 ${cursorPath}` : `Click to copy ${cursorPath}`}
+              onClick={() => handleAction('copy-path', cursorPath)}
+            >
               {cursorPath}
-            </span>
-            <span className="ml-auto whitespace-nowrap">
-              {lines} lines · {sizeLabel}
+            </button>
+            <span className="ml-auto whitespace-nowrap tabular-nums">
+              {lines} {lang === 'zh' ? '行' : 'lines'} · {sizeLabel}
             </span>
             {toast && <span className="text-blue-600 dark:text-blue-400">{toast}</span>}
           </div>
@@ -372,25 +409,30 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
 
         {menu && (
           <div
-            className="fixed z-50 min-w-[180px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl py-1 text-sm"
+            className="fixed z-50 min-w-[188px] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl py-1 text-sm"
             style={{ left: menu.x, top: menu.y }}
           >
-            {[
-              ['copy-path', lang === 'zh' ? '复制节点路径' : 'Copy path'],
-              ['copy-value', lang === 'zh' ? '复制节点内容' : 'Copy value'],
-              ...(!readOnly
-                ? [
-                    ['add-child', lang === 'zh' ? '添加子节点' : 'Add child'],
-                    ['delete', lang === 'zh' ? '删除节点' : 'Delete node'],
-                  ]
-                : []),
-            ].map(([action, label]) => (
+            {(() => {
+              const node = parsed.ok ? getAt(parsed.value, parseJsonPath(menu.path)) : undefined;
+              const items: Array<[JsonEditorAction, string]> = [
+                ['copy-path', lang === 'zh' ? '复制节点路径' : 'Copy path'],
+                ['copy-value', lang === 'zh' ? '复制节点内容' : 'Copy value'],
+              ];
+              if (!readOnly) {
+                if (isContainer(node)) items.push(['add-child', lang === 'zh' ? '添加子节点' : 'Add child']);
+                if (menu.path !== '$') {
+                  items.push(['duplicate', lang === 'zh' ? '复制节点' : 'Duplicate node']);
+                  items.push(['delete', lang === 'zh' ? '删除节点' : 'Delete node']);
+                }
+              }
+              return items;
+            })().map(([action, label]) => (
               <button
                 key={action}
                 type="button"
                 className="w-full text-left px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={() => {
-                  handleAction(action as JsonEditorAction, menu.path);
+                  handleAction(action, menu.path);
                   setMenu(null);
                 }}
               >
@@ -414,10 +456,15 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
                     value={addKey}
                     onChange={(e) => setAddKey(e.target.value)}
                     className="mt-1 w-full px-2 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') confirmAdd();
+                      if (e.key === 'Escape') setAddDialog(null);
+                    }}
                   />
                 </label>
               )}
-              <label className="block text-xs text-gray-500 mb-3">
+              <label className="block text-xs text-gray-500 mb-2">
                 {lang === 'zh' ? '类型' : 'Type'}
                 <select
                   value={addType}
@@ -432,6 +479,31 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
                   <option value="array">array</option>
                 </select>
               </label>
+              {(addType === 'string' || addType === 'number' || addType === 'boolean') && (
+                <label className="block text-xs text-gray-500 mb-3">
+                  {lang === 'zh' ? '值' : 'Value'}
+                  {addType === 'boolean' ? (
+                    <select
+                      value={addValue === 'false' ? 'false' : 'true'}
+                      onChange={(e) => setAddValue(e.target.value)}
+                      className="mt-1 w-full px-2 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                    >
+                      <option value="true">true</option>
+                      <option value="false">false</option>
+                    </select>
+                  ) : (
+                    <input
+                      value={addValue}
+                      onChange={(e) => setAddValue(e.target.value)}
+                      className="mt-1 w-full px-2 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') confirmAdd();
+                        if (e.key === 'Escape') setAddDialog(null);
+                      }}
+                    />
+                  )}
+                </label>
+              )}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
