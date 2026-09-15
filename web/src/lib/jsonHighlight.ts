@@ -186,6 +186,18 @@ export function formatParseError(error: unknown): HighlightParseError {
   };
 }
 
+export function displayParseError(error: HighlightParseError, lang: 'zh' | 'en'): string {
+  const detail = error.message
+    .replace(/^解析错误：/, '')
+    .replace(/\s*\(line\s+\d+\s+column\s+\d+\)/gi, '')
+    .replace(/\s*at position\s+\d+/gi, '')
+    .trim()
+    .replace(/[，,;；]+$/, '');
+  return lang === 'zh'
+    ? `${detail}（第 ${error.line} 行，第 ${error.column} 列）`
+    : `${detail} (line ${error.line}, column ${error.column})`;
+}
+
 export function parseJsonForHighlight(
   input: string,
   options: HighlightParseOptions = {}

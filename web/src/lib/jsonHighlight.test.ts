@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   buildHighlightTree,
   collectCollapsiblePaths,
+  displayParseError,
   formatParseError,
   parseJsonForHighlight,
   stringifyCompact,
@@ -133,5 +134,9 @@ describe('formatParseError', () => {
     const formatted = formatParseError(caught);
     assert.equal(formatted.line >= 1, true);
     assert.match(formatted.message, /oops|token|JSON/i);
+    const shown = displayParseError(formatted, 'zh');
+    assert.match(shown, /第 \d+ 行/);
+    assert.equal((shown.match(/第 \d+ 行/g) || []).length, 1);
+    assert.doesNotMatch(shown, /line \d+ column/i);
   });
 });

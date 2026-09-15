@@ -30,7 +30,7 @@ function CollapseToggle({
       onClick={onClick}
       aria-label={expanded ? 'Collapse' : 'Expand'}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <Icon className="w-3 h-3" />
     </button>
   );
 }
@@ -46,13 +46,13 @@ function Primitive({ node }: { node: HighlightNode }) {
     case 'string':
       if (node.href) {
         return (
-          <span className="json-hl-string">
-            "
+          <>
+            <span className="json-hl-string">"</span>
             <a href={node.href} target="_blank" rel="noopener noreferrer" className="json-hl-link">
               {node.value}
             </a>
-            "
-          </span>
+            <span className="json-hl-string">"</span>
+          </>
         );
       }
       return <span className="json-hl-string">{JSON.stringify(node.value)}</span>;

@@ -23,6 +23,7 @@ import {
   collectCollapsiblePaths,
   parseJsonForHighlight,
   stringifyCompact,
+  displayParseError,
   type HighlightNode,
 } from '../lib/jsonHighlight';
 
@@ -117,11 +118,7 @@ export function FormatterTool() {
       try {
         const result = parseJsonForHighlight(actualInput, { indent, sortKeys, nestedParse });
         if (!result.ok) {
-          setError(
-            lang === 'zh'
-              ? `${result.error.message}（第 ${result.error.line} 行，第 ${result.error.column} 列）`
-              : `${result.error.message} (line ${result.error.line}, column ${result.error.column})`
-          );
+          setError(displayParseError(result.error, lang));
           setOutput('');
           setTree(null);
           return;
@@ -167,11 +164,7 @@ export function FormatterTool() {
     if (!src.trim()) return;
     const result = parseJsonForHighlight(src, { indent, sortKeys, nestedParse });
     if (!result.ok) {
-      setError(
-        lang === 'zh'
-          ? `${result.error.message}（第 ${result.error.line} 行，第 ${result.error.column} 列）`
-          : `${result.error.message} (line ${result.error.line}, column ${result.error.column})`
-      );
+      setError(displayParseError(result.error, lang));
       return;
     }
     setTree(result.tree);

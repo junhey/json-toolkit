@@ -254,12 +254,6 @@ button, a, input, select, textarea {
   font-weight: 700;
 }
 
-.json-hl-link {
-  color: #61d2d6;
-  font-weight: 700;
-  text-decoration: underline;
-}
-
 .dark .json-hl-key {
   color: #e39ae6;
 }
@@ -280,8 +274,14 @@ button, a, input, select, textarea {
   color: #ff8a5c;
 }
 
-.dark .json-hl-link {
-  color: #7eecf0;
+.json-hl-view a.json-hl-link {
+  color: #61d2d6 !important;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.dark .json-hl-view a.json-hl-link {
+  color: #7eecf0 !important;
 }
 
 .json-hl-toggle {
