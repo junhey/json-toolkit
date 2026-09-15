@@ -8,11 +8,11 @@ import { useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 const HIGHLIGHT_CHAR_LIMIT = 250_000;
 
 const lightHighlight = HighlightStyle.define([
-  { tag: t.propertyName, color: '#b91c1c', fontWeight: '600' },
-  { tag: t.string, color: '#be185d' },
-  { tag: t.number, color: '#15803d' },
-  { tag: t.bool, color: '#1d4ed8', fontWeight: '600' },
-  { tag: t.null, color: '#7c3aed', fontWeight: '600' },
+  { tag: t.propertyName, color: '#92278f', fontWeight: '700' },
+  { tag: t.string, color: '#3ab54a', fontWeight: '700' },
+  { tag: t.number, color: '#25aae2', fontWeight: '700' },
+  { tag: t.bool, color: '#f98280', fontWeight: '700' },
+  { tag: t.null, color: '#f1592a', fontWeight: '700' },
   { tag: t.punctuation, color: '#64748b' },
   { tag: t.bracket, color: '#0f172a' },
   { tag: t.squareBracket, color: '#0f172a' },
@@ -21,11 +21,11 @@ const lightHighlight = HighlightStyle.define([
 ]);
 
 const darkHighlight = HighlightStyle.define([
-  { tag: t.propertyName, color: '#fca5a5', fontWeight: '600' },
-  { tag: t.string, color: '#86efac' },
-  { tag: t.number, color: '#93c5fd' },
-  { tag: t.bool, color: '#fdba74', fontWeight: '600' },
-  { tag: t.null, color: '#d8b4fe', fontWeight: '600' },
+  { tag: t.propertyName, color: '#e39ae6', fontWeight: '700' },
+  { tag: t.string, color: '#6dce77', fontWeight: '700' },
+  { tag: t.number, color: '#5ec8f0', fontWeight: '700' },
+  { tag: t.bool, color: '#f9a8a8', fontWeight: '700' },
+  { tag: t.null, color: '#ff8a5c', fontWeight: '700' },
   { tag: t.punctuation, color: '#94a3b8' },
   { tag: t.bracket, color: '#e2e8f0' },
   { tag: t.squareBracket, color: '#e2e8f0' },
@@ -181,10 +181,9 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
         },
       });
       return [
-        ...(highlight ? [json()] : []),
+        ...(highlight ? [json(), syntaxHighlighting(isDark ? darkHighlight : lightHighlight, { fallback: false })] : []),
         EditorView.lineWrapping,
         fillTheme,
-        syntaxHighlighting(isDark ? darkHighlight : lightHighlight),
         pasteHandler,
         EditorView.contentAttributes.of({
           'aria-label': readOnly ? 'JSON output' : 'JSON input',
@@ -213,6 +212,7 @@ export const JsonCodeEditor = forwardRef<JsonCodeEditorHandle, JsonCodeEditorPro
             defaultKeymap: true,
             indentOnInput: true,
             searchKeymap: true,
+            syntaxHighlighting: false,
           }}
           extensions={extensions}
           editable={!readOnly}

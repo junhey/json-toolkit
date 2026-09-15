@@ -4,26 +4,23 @@ use serde::{Deserialize, Serialize};
 /// Indentation style for JSON formatting
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum Indent {
-    /// 2 spaces (default)
-    Spaces2,
-    /// 4 spaces
-    Spaces4,
+    /// N spaces
+    Spaces(u32),
     /// Tab character
     Tab,
 }
 
 impl Default for Indent {
     fn default() -> Self {
-        Indent::Spaces2
+        Indent::Spaces(2)
     }
 }
 
 impl Indent {
-    fn as_str(&self) -> &'static str {
+    fn as_string(&self) -> String {
         match self {
-            Indent::Spaces2 => "  ",
-            Indent::Spaces4 => "    ",
-            Indent::Tab => "\t",
+            Indent::Spaces(n) => " ".repeat(*n as usize),
+            Indent::Tab => "\t".to_string(),
         }
     }
 }
@@ -39,7 +36,7 @@ pub struct FormatOptions {
 impl Default for FormatOptions {
     fn default() -> Self {
         Self {
-            indent: Indent::Spaces2,
+            indent: Indent::Spaces(2),
             sort_keys: false,
             trailing_newline: false,
         }
@@ -56,7 +53,7 @@ pub fn format_json(input: &str, opts: &FormatOptions) -> JsonResult<String> {
 
     // Use serde_json::to_string_pretty with custom indent
     // serde_json doesn't support custom indent directly, so we use a formatter
-    let indent_str = opts.indent.as_str();
+    let indent_str = opts.indent.as_string();
     let buf = Vec::new();
     let formatter = serde_json::ser::PrettyFormatter::with_indent(indent_str.as_bytes());
     let mut ser = serde_json::Serializer::with_formatter(buf, formatter);
@@ -120,6 +117,18 @@ mod tests {
         };
         let result = format_json(input, &opts).unwrap();
         assert_eq!(result, "{\n\t\"a\": 1\n}");
+    }
+
+    #[test]
+    fn test_format_8_spaces() {
+        let input = r#"{"a":1}"#;
+        let opts = FormatOptions {
+            indent: Indent::Spaces(8),
+            ..Default::default()
+        };
+        let result = format_json(input, &opts).unwrap();
+        assert_eq!(result, "{\n        \"a\": 1\n}");
+        assert!(!result.contains('\t'));
     }
 
     #[test]

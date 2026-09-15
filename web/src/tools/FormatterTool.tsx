@@ -17,13 +17,23 @@ import { t } from '../lib/i18n';
 import { getAdapter } from '../lib/adapter';
 import { downloadText, useClipboard } from '../components/ToolShell';
 import { JsonCodeEditor } from '../components/JsonCodeEditor';
+import { JsonHighlightView } from '../components/JsonHighlightView';
 import { useIsDark } from '../lib/useIsDark';
+import {
+  collectCollapsiblePaths,
+  parseJsonForHighlight,
+  stringifyCompact,
+  displayParseError,
+  type HighlightNode,
+} from '../lib/jsonHighlight';
 
 const SAMPLE_JSON = `{
   "app": "JSON Toolkit",
   "version": 2,
   "enabled": true,
   "owner": null,
+  "id": 12345678901234567890,
+  "home": "https://www.json.cn/",
   "features": ["format", "minify", "jsonpath", "diff"],
   "nested": "{\\"ok\\":true,\\"count\\":3}",
   "meta": {
@@ -34,40 +44,16 @@ const SAMPLE_JSON = `{
 
 type LayoutMode = 'horizontal' | 'vertical';
 
-function tryParseNestedJsonStrings(value: unknown): unknown {
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (
-      (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-      (trimmed.startsWith('[') && trimmed.endsWith(']'))
-    ) {
-      try {
-        return tryParseNestedJsonStrings(JSON.parse(trimmed));
-      } catch {
-        return value;
-      }
-    }
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(tryParseNestedJsonStrings);
-  }
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      out[k] = tryParseNestedJsonStrings(v);
-    }
-    return out;
-  }
-  return value;
-}
-
 export function FormatterTool() {
   const { lang } = useStore();
   const isDark = useIsDark();
   const { copied, copy } = useClipboard();
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
+  const [tree, setTree] = useState<HighlightNode | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [showLineNumbers, setShowLineNumbers] = useState(true);
+  const [compactView, setCompactView] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [indent, setIndent] = useState(2);
   const [sortKeys, setSortKeys] = useState(false);
@@ -110,8 +96,10 @@ export function FormatterTool() {
       const text = overrideInput ?? input;
       if (!text.trim()) {
         setOutput('');
+        setTree(null);
         setError(null);
         setDecodedFrom(null);
+        setCompactView(false);
         return;
       }
 
@@ -128,24 +116,25 @@ export function FormatterTool() {
       }
 
       try {
-        let toFormat = actualInput;
-        if (nestedParse) {
-          try {
-            const parsed = JSON.parse(actualInput);
-            toFormat = JSON.stringify(tryParseNestedJsonStrings(parsed));
-          } catch {
-            // keep original; format will report parse error
-          }
+        const result = parseJsonForHighlight(actualInput, { indent, sortKeys, nestedParse });
+        if (!result.ok) {
+          setError(displayParseError(result.error, lang));
+          setOutput('');
+          setTree(null);
+          return;
         }
-        const result = await getAdapter().format(toFormat, indent, sortKeys);
-        setOutput(result);
+        setOutput(result.text);
+        setTree(result.tree);
+        setCollapsed(new Set());
+        setCompactView(false);
         setError(null);
       } catch (e: any) {
         setError(e.toString().replace(/^Error:\s*/, ''));
         setOutput('');
+        setTree(null);
       }
     },
-    [input, indent, sortKeys, autoDecode, nestedParse, tryAutoDecode]
+    [input, indent, sortKeys, autoDecode, nestedParse, tryAutoDecode, lang]
   );
 
   useEffect(() => {
@@ -170,16 +159,27 @@ export function FormatterTool() {
     [pasteAutoFormat, process]
   );
 
-  const runMinify = async () => {
+  const runMinify = () => {
     const src = output || input;
     if (!src.trim()) return;
-    try {
-      const result = await getAdapter().minify(src);
-      setOutput(result);
-      setError(null);
-    } catch (e: any) {
-      setError(e.toString().replace(/^Error:\s*/, ''));
+    const result = parseJsonForHighlight(src, { indent, sortKeys, nestedParse });
+    if (!result.ok) {
+      setError(displayParseError(result.error, lang));
+      return;
     }
+    setTree(result.tree);
+    setOutput(stringifyCompact(result.tree));
+    setCompactView(true);
+    setError(null);
+  };
+
+  const togglePath = (path: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
   };
 
   const applyQuickCodec = async (mode: 'encode' | 'decode', encoding: string) => {
@@ -196,6 +196,8 @@ export function FormatterTool() {
         await process(result);
       } else {
         setOutput(result);
+        setTree(null);
+        setCompactView(false);
       }
       setError(null);
     } catch (e: any) {
@@ -214,6 +216,9 @@ export function FormatterTool() {
   const clearAll = () => {
     setInput('');
     setOutput('');
+    setTree(null);
+    setCollapsed(new Set());
+    setCompactView(false);
     setError(null);
     setDecodedFrom(null);
   };
@@ -279,7 +284,7 @@ export function FormatterTool() {
           className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-1.5"
         >
           <AlignLeft className="w-3.5 h-3.5" />
-          {lang === 'zh' ? '格式化' : 'Format'}
+          {t(lang, 'beautify')}
         </button>
         <button
           type="button"
@@ -347,6 +352,26 @@ export function FormatterTool() {
           label={lang === 'zh' ? '嵌套解析' : 'Nested'}
         />
         <Toggle checked={realTime} onChange={setRealTime} label={t(lang, 'realTime')} />
+        <Toggle
+          checked={showLineNumbers}
+          onChange={setShowLineNumbers}
+          label={t(lang, 'lineNumbers')}
+        />
+
+        <button
+          type="button"
+          onClick={() => setCollapsed(new Set())}
+          className="text-xs px-2 py-1 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          {t(lang, 'expandAll')}
+        </button>
+        <button
+          type="button"
+          onClick={() => tree && setCollapsed(new Set(collectCollapsiblePaths(tree)))}
+          className="text-xs px-2 py-1 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          {t(lang, 'collapseAll')}
+        </button>
 
         <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 mx-0.5" />
 
@@ -455,15 +480,29 @@ export function FormatterTool() {
           {error ? (
             <div className="flex-1 min-h-0 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm overflow-auto flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div className="break-all">{error}</div>
+              <div className="break-all">
+                <span className="font-bold">{lang === 'zh' ? '解析错误：' : 'Parse error: '}</span>
+                {error.replace(/^解析错误：/, '')}
+              </div>
             </div>
-          ) : (
+          ) : compactView || !tree ? (
             <JsonCodeEditor
               value={output}
               readOnly
               isDark={isDark}
               placeholder={
                 lang === 'zh' ? '格式化结果将显示在这里...' : 'Formatted output will appear here...'
+              }
+            />
+          ) : (
+            <JsonHighlightView
+              tree={tree}
+              indent={indent}
+              showLineNumbers={showLineNumbers}
+              collapsed={collapsed}
+              onToggle={togglePath}
+              placeholder={
+                lang === 'zh' ? '点击「整理」美化并高亮 JSON...' : 'Click Beautify to format and highlight JSON...'
               }
             />
           )}

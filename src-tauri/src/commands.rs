@@ -7,11 +7,7 @@ use json_core::mock::MockOptions;
 
 #[tauri::command]
 pub fn format_json(input: String, indent: u32, sort_keys: bool) -> Result<String, String> {
-    let indent = match indent {
-        4 => Indent::Spaces4,
-        8 => Indent::Tab,
-        _ => Indent::Spaces2,
-    };
+    let indent = Indent::Spaces(if indent == 0 { 2 } else { indent });
     let opts = FormatOptions {
         indent,
         sort_keys,
