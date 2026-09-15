@@ -11,11 +11,7 @@ use crate::{
 
 #[wasm_bindgen]
 pub fn wasm_format(input: &str, indent: u32, sort_keys: bool) -> Result<String, JsValue> {
-    let indent = match indent {
-        2 => Indent::Spaces2,
-        4 => Indent::Spaces4,
-        _ => Indent::Tab,
-    };
+    let indent = Indent::Spaces(if indent == 0 { 2 } else { indent });
     let opts = FormatOptions {
         indent,
         sort_keys,
